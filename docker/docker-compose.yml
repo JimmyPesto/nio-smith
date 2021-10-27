@@ -54,11 +54,3 @@ services:
     extra_hosts:
       - "localhost:${HOST_IP_ADDRESS}"
 
-  # Starts up a postgres database
-  postgres:
-    image: postgres
-    restart: always
-    volumes:
-      - pg_data_volume:/var/lib/postgresql/data
-    environment:
-        POSTGRES_PASSWORD: somefancypassword

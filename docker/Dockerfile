@@ -49,11 +49,6 @@ RUN apk add --no-cache \
 COPY docker/build_and_install_libolm.sh /scripts/
 RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 
-# Install Postgres dependencies
-RUN apk add --no-cache \
-    musl-dev \
-    libpq \
-    postgresql-dev
 
 # Install python runtime modules. We do this before copying the source code
 # such that these dependencies can be cached
@@ -90,12 +85,10 @@ COPY --from=builder /usr/local/lib/libolm* /usr/local/lib/
 # Install any native runtime dependencies
 RUN apk add --no-cache \
     libstdc++ \
-    libpq \
-    postgresql-dev
+    libpq
 
-# Specify a volume that holds the config file, SQLite3 database,
-# and the matrix-nio store
+# Specify a volume that holds the config file TODO AND?!
 VOLUME ["/data"]
 
 # Start the bot
-ENTRYPOINT ["nio-smith", "/data/config.yaml"]
+ENTRYPOINT ["main.py", "/data/config.yaml"]

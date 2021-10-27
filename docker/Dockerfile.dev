@@ -48,7 +48,6 @@ RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION}
 RUN apk add --no-cache \
     musl-dev \
     libpq \
-    postgresql-dev \
     libstdc++
 
 # Install python runtime modules. We do this before copying the source code
@@ -57,7 +56,7 @@ RUN mkdir -p /src/nio-smith
 COPY nio-smith/__init__.py /src/nio-smith/
 COPY README.md nio-smith /src/
 COPY setup.py /src/setup.py
-RUN pip install -e "/src/.[postgres]"
+#RUN pip install -e "/src/.[postgres]"
 
 # Now copy the source code
 COPY nio-smith/*.py /src/nio-smith/
@@ -68,4 +67,4 @@ COPY *.py /src/
 VOLUME ["/data"]
 
 # Start the app
-ENTRYPOINT ["nio-smith", "/data/config.yaml"]
+ENTRYPOINT ["main.py", "/data/config.yaml"]
