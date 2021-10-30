@@ -39,6 +39,7 @@ docker volume create \
   --opt o=bind \
   --opt device="/path/to/data/dir" data_volume
 ```
+TODO add config_volume so persistent data can not get lost when changing configurations
 
 TODO delete or implement docker hub stuff!
 #Start the bot with:

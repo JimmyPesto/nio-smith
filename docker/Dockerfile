@@ -23,7 +23,10 @@
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
 ARG PYTHON_VERSION=3.8
+ARG SOURCE_DIR=/src/nio-smith1
 FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
+
+ARG SOURCE_DIR
 
 ##
 ## Build libolm for matrix-nio e2e support
@@ -53,20 +56,22 @@ RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 # Install python runtime modules. We do this before copying the source code
 # such that these dependencies can be cached
 # This speeds up subsequent image builds when the source code is changed
-RUN mkdir -p /src/nio-smith
-COPY nio-smith/__init__.py /src/nio-smith/
-COPY README.md nio-smith /src/
+#RUN mkdir -p /src/nio-smith/ # Not really needed anymore
+RUN mkdir -p ${SOURCE_DIR}
+#COPY nio-smith/__init__.py /src/nio-smith/ # TODO WHY? WHAT IS THIS PROJECTS EQUIVALENT?!
+#COPY README.md /src/ # TODO WHY?!
 
-# Build the dependencies
-COPY setup.py /src/setup.py
-RUN pip install --prefix="/python-libs" --no-warn-script-location "/src/.[postgres]"
+# Build bot main dependencies
+COPY requirements.txt ${SOURCE_DIR}/requirements.txt
+RUN pip install --prefix="/python-libs" --no-warn-script-location -r "${SOURCE_DIR}/requirements.txt"
 
-# Now copy the source code
-COPY *.py *.md /src/
-COPY nio-smith/*.py /src/nio-smith/
-
-# And build the final module
-RUN pip install --prefix="/python-libs" --no-warn-script-location "/src/.[postgres]"
+# Copy (selected) plugins?
+# Build all plugin requirements (specified in each plugin's `requirements.txt`)
+# Copy full plugin directories
+# TODO only copy requirements.txt
+COPY plugins/ ${SOURCE_DIR}/plugins/
+# Install all plugin requirements (specified in each plugin's `requirements.txt`)
+RUN find ${SOURCE_DIR}/plugins/ -iname requirements.txt -exec pip install --prefix="/python-libs" --no-warn-script-location -r {} \;
 
 ##
 ## Creating the runtime container
@@ -75,6 +80,27 @@ RUN pip install --prefix="/python-libs" --no-warn-script-location "/src/.[postgr
 # Create the container we'll actually ship. We need to copy libolm and any
 # python dependencies that we built above to this container
 FROM docker.io/python:${PYTHON_VERSION}-alpine3.11
+
+ARG SOURCE_DIR
+
+
+RUN mkdir -p ${SOURCE_DIR}
+
+# TODO enhance secuirty?!
+# https://stackoverflow.com/questions/39397548/how-to-give-non-root-user-in-docker-container-access-to-a-volume-mounted-on-the
+# https://stackoverflow.com/questions/39397548/how-to-give-non-root-user-in-docker-container-access-to-a-volume-mounted-on-the
+#RUN useradd --create-home appuser
+#USER appuser
+
+# Now copy the full source code
+COPY main.py README.md ${SOURCE_DIR}/
+COPY core/*.py ${SOURCE_DIR}/core/
+RUN mkdir -p ${SOURCE_DIR}/plugins
+RUN echo ${SOURCE_DIR}
+RUN ls ${SOURCE_DIR}/plugins
+#COPY plugins/*.py ${SOURCE_DIR}/plugins/ # maybe later only copy py files?
+COPY plugins/ ${SOURCE_DIR}/plugins/
+
 
 # Copy python dependencies from the "builder" container
 COPY --from=builder /python-libs /usr/local
@@ -90,5 +116,7 @@ RUN apk add --no-cache \
 # Specify a volume that holds the config file TODO AND?!
 VOLUME ["/data"]
 
+WORKDIR ${SOURCE_DIR}
+RUN chmod +x ${SOURCE_DIR}/main.py
 # Start the bot
-ENTRYPOINT ["main.py", "/data/config.yaml"]
+CMD ["python", "main.py", "/data/config.yaml"]
