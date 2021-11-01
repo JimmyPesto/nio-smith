@@ -1,6 +1,6 @@
 # Setup
 
-nio-template is a sample repository of a working Matrix bot that can be taken
+nio-smith is a sample repository of a working Matrix bot that can be taken
 and transformed into one's own bot, service or whatever else may be necessary.
 Below is a quick setup guide to running the existing bot.
 
@@ -45,27 +45,6 @@ You can install [libolm](https://gitlab.matrix.org/matrix-org/olm) from source,
 or alternatively, check your system's package manager. Version `3.0.0` or
 greater is required.
 
-**(Optional) postgres development headers**
-
-By default, the bot uses SQLite as its storage backend. This is fine for a few
-hundred users, but if you plan to support a much higher volume of requests, you
-may consider using Postgres as a database backend instead.
-
-If you want to use postgres as a database backend, you'll need to install
-postgres development headers:
-
-Debian/Ubuntu:
-
-```
-sudo apt install libpq-dev libpq5
-```
-
-Arch:
-
-```
-sudo pacman -S postgresql-libs
-```
-
 #### Install Python dependencies
 
 Create and activate a Python 3 virtual environment:
@@ -78,14 +57,12 @@ source env/bin/activate
 Install python dependencies:
 
 ```
-pip install -e .
+pip install -r requirements.txt
 ```
 
-(Optional) If you want to use postgres as a database backend, use the following
-command to install postgres dependencies alongside those that are necessary:
-
+To install all plugin requirements (specified in each plugin's `requirements.txt`), you may optionally run:
 ```
-pip install -e ".[postgres]"
+find . -iname requirements.txt -exec pip install -r {} \;
 ```
 
 ## Configuration
@@ -93,27 +70,10 @@ pip install -e ".[postgres]"
 Copy the sample configuration file to a new `config.yaml` file.
 
 ```
-cp sample.config.yaml config.yaml
+cp sample.config.yaml data/config.yaml
 ```
 
 Edit the config file. The `matrix` section must be modified at least.
-
-#### (Optional) Set up a Postgres database
-
-Create a postgres user and database for matrix-reminder-bot:
-
-```
-sudo -u postgresql psql createuser nio-template -W  # prompts for a password
-sudo -u postgresql psql createdb -O nio-template nio-template
-```
-
-Edit the `storage.database` config option, replacing the `sqlite://...` string with `postgres://...`. The syntax is:
-
-```
-database: "postgres://username:password@localhost/dbname?sslmode=disable"
-```
-
-See also the comments in `sample.config.yaml`.
 
 ## Running
 
@@ -151,7 +111,7 @@ nio-smith other-config.yaml
 
 Invite the bot to a room and it should accept the invite and join.
 
-By default nio-template comes with an `echo` command. Let's test this now.
+By default nio-smith comes with an `echo` command. Let's test this now.
 After the bot has successfully joined the room, try sending the following
 in a message:
 
@@ -165,9 +125,3 @@ The message should be repeated back to you by the bot.
 
 Congratulations! Your bot is up and running. Now you can modify the code,
 re-run the bot and see how it behaves. Have fun!
-
-## Troubleshooting
-
-If you had any difficulties with this setup process, please [file an
-issue](https://github.com/anoadragon453/nio-template/issues]) or come talk
-about it in [the matrix room](https://matrix.to/#/#nio-template).

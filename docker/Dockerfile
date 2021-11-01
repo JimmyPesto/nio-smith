@@ -23,7 +23,7 @@
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
 ARG PYTHON_VERSION=3.8
-ARG SOURCE_DIR=/src/nio-smith1
+ARG SOURCE_DIR=/home/nio-smith
 FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
 
 ARG SOURCE_DIR
@@ -83,14 +83,21 @@ FROM docker.io/python:${PYTHON_VERSION}-alpine3.11
 
 ARG SOURCE_DIR
 
-
-RUN mkdir -p ${SOURCE_DIR}
+# Install any native runtime dependencies
+RUN apk add --no-cache \
+    libstdc++
 
 # TODO enhance secuirty?!
 # https://stackoverflow.com/questions/39397548/how-to-give-non-root-user-in-docker-container-access-to-a-volume-mounted-on-the
-# https://stackoverflow.com/questions/39397548/how-to-give-non-root-user-in-docker-container-access-to-a-volume-mounted-on-the
-#RUN useradd --create-home appuser
-#USER appuser
+# alpine style: https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image
+# Create a group and user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+RUN mkdir -p ${SOURCE_DIR}
+RUN chown appuser ${SOURCE_DIR}
+# Tell docker that all future commands should run as the appuser user
+USER appuser
+
 
 # Now copy the full source code
 COPY main.py README.md ${SOURCE_DIR}/
@@ -108,15 +115,12 @@ COPY --from=builder /python-libs /usr/local
 # Copy libolm from the "builder" container
 COPY --from=builder /usr/local/lib/libolm* /usr/local/lib/
 
-# Install any native runtime dependencies
-RUN apk add --no-cache \
-    libstdc++ \
-    libpq
-
 # Specify a volume that holds the config file TODO AND?!
 VOLUME ["/data"]
+#VOLUME ["/plugins"]
+#VOLUME ["/config"]
 
 WORKDIR ${SOURCE_DIR}
-RUN chmod +x ${SOURCE_DIR}/main.py
+#RUN chmod +x ${SOURCE_DIR}/main.py
 # Start the bot
 CMD ["python", "main.py", "/data/config.yaml"]
