@@ -31,15 +31,18 @@ store log files in the `/data` directory.
 
 ## Running
 
-First, create a volume for the data directory created in the above section:
+First, create a volume for the data directory created in the above section. Make sure to use an absolute path to the directory used for the state volume:
 
 ```
 docker volume create \
   --opt type=none \
   --opt o=bind \
-  --opt device="/path/to/data/dir" data_volume
+  --opt device="/path/to/data/dir" state_volume
+sudo docker volume create \
+  --opt type=none \
+  --opt o=bind \
+  --opt device="~/bot/nio-smith/data/state" nio-state
 ```
-TODO add config_volume so persistent data can not get lost when changing configurations
 
 TODO delete or implement docker hub stuff!
 #Start the bot with:

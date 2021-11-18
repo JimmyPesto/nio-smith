@@ -2,7 +2,7 @@ version: '3.1' # specify docker-compose version
 
 volumes:
   # Set up with `docker volume create ...`. See docker/README.md for more info.
-  data_volume:
+  nio-state:
     external: true
 
 services:
@@ -21,7 +21,7 @@ services:
   #    - "localhost:${HOST_IP_ADDRESS}"
 
   # Builds and runs an optimized container from local code
-  local-checkout:
+  nio-smith:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -29,28 +29,15 @@ services:
       # args:
       #  PYTHON_VERSION: 3.8
     volumes:
-      - data_volume:/data
+      # external volume containing dbs with bot state
+      # read/write state volume!
+      - "nio-state:/home/nio-smith/data/state:rw"
+      # read only config volume!
+      # not considering build context, so go one level up
+      - "../data/config:/home/nio-smith/data/config:ro"
     # Used for allowing connections to homeservers hosted on the host machine
     # (while docker host networking mode is still broken on Linux).
     #
     # Defaults to 127.0.0.1 and is set in docker/.env
     extra_hosts:
       - "localhost:${HOST_IP_ADDRESS}"
-
-  # Builds and runs a development container from local code
-  #local-checkout-dev:
-  #  build:
-  #    context: ..
-  #    dockerfile: docker/Dockerfile.dev
-  #    # Build arguments may be specified here
-  #    # args:
-  #    #  PYTHON_VERSION: 3.8
-  #  volumes:
-  #    - data_volume:/data
-  #  # Used for allowing connections to homeservers hosted on the host machine
-  #  # (while docker host networking mode is still broken on Linux).
-  #  #
-  #  # Defaults to 127.0.0.1 and is set in docker/.env
-  #  extra_hosts:
-  #    - "localhost:${HOST_IP_ADDRESS}"
-

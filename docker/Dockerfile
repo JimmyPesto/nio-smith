@@ -80,34 +80,28 @@ RUN find ${SOURCE_DIR}/plugins/ -iname requirements.txt -exec pip install --pref
 # Create the container we'll actually ship. We need to copy libolm and any
 # python dependencies that we built above to this container
 FROM docker.io/python:${PYTHON_VERSION}-alpine3.11
-
+#FROM docker.io/python:${PYTHON_VERSION}-slim
 ARG SOURCE_DIR
 
 # Install any native runtime dependencies
 RUN apk add --no-cache \
     libstdc++
-
-# TODO enhance secuirty?!
-# https://stackoverflow.com/questions/39397548/how-to-give-non-root-user-in-docker-container-access-to-a-volume-mounted-on-the
-# alpine style: https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image
-# Create a group and user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-RUN mkdir -p ${SOURCE_DIR}
-RUN chown appuser ${SOURCE_DIR}
-# Tell docker that all future commands should run as the appuser user
-USER appuser
-
+#RUN apt-get update
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+# libstdc++6
+#RUN useradd --create-home nio-smith
+RUN adduser -D -h ${SOURCE_DIR} nio-smith
+# [How do I add a user when I'm using Alpine as a base image?](https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image#)
+# [Setting up a new user](https://wiki.alpinelinux.org/wiki/Setting_up_a_new_user)
+WORKDIR ${SOURCE_DIR}
+#USER nio-smith
 
 # Now copy the full source code
 COPY main.py README.md ${SOURCE_DIR}/
 COPY core/*.py ${SOURCE_DIR}/core/
 RUN mkdir -p ${SOURCE_DIR}/plugins
-RUN echo ${SOURCE_DIR}
-RUN ls ${SOURCE_DIR}/plugins
 #COPY plugins/*.py ${SOURCE_DIR}/plugins/ # maybe later only copy py files?
 COPY plugins/ ${SOURCE_DIR}/plugins/
-
 
 # Copy python dependencies from the "builder" container
 COPY --from=builder /python-libs /usr/local
@@ -115,12 +109,6 @@ COPY --from=builder /python-libs /usr/local
 # Copy libolm from the "builder" container
 COPY --from=builder /usr/local/lib/libolm* /usr/local/lib/
 
-# Specify a volume that holds the config file TODO AND?!
-VOLUME ["/data"]
-#VOLUME ["/plugins"]
-#VOLUME ["/config"]
-
-WORKDIR ${SOURCE_DIR}
-#RUN chmod +x ${SOURCE_DIR}/main.py
+#RUN chown  -R nio-smith /home/nio-smith/data/state
 # Start the bot
-CMD ["python", "main.py", "/data/config.yaml"]
+CMD ["python", "main.py", "/home/nio-smith/data/config/config.yaml"]
