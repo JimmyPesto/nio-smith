@@ -94,7 +94,11 @@ RUN adduser -D -h ${SOURCE_DIR} nio-smith
 # [How do I add a user when I'm using Alpine as a base image?](https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image#)
 # [Setting up a new user](https://wiki.alpinelinux.org/wiki/Setting_up_a_new_user)
 WORKDIR ${SOURCE_DIR}
-#USER nio-smith
+RUN mkdir -p /home/nio-smith/data/state
+RUN chown nio-smith:nio-smith /home/nio-smith/data/state
+RUN mkdir -p ${SOURCE_DIR}/plugins/
+RUN chown -R nio-smith:nio-smith ${SOURCE_DIR}/plugins/
+USER nio-smith
 
 # Now copy the full source code
 COPY main.py README.md ${SOURCE_DIR}/
@@ -109,6 +113,5 @@ COPY --from=builder /python-libs /usr/local
 # Copy libolm from the "builder" container
 COPY --from=builder /usr/local/lib/libolm* /usr/local/lib/
 
-#RUN chown  -R nio-smith /home/nio-smith/data/state
 # Start the bot
 CMD ["python", "main.py", "/home/nio-smith/data/config/config.yaml"]
