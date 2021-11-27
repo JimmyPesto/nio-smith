@@ -4,6 +4,10 @@ volumes:
   # Set up with `docker volume create ...`. See docker/README.md for more info.
   nio-state:
     external: true
+  # dirty workarrount to make single plugin state persistant between builds
+  # Set up with `docker volume create ...`. See docker/README.md for more info.
+  plugin-cashup-state:
+    external: true
 
 services:
   # TODO delete or implement docker hub stuff!
@@ -32,6 +36,9 @@ services:
       # external volume containing dbs with bot state
       # read/write state volume!
       - "nio-state:/home/nio-smith/data/state:rw"
+      # external volume containing plugin cashup state
+      # read/write state volume!
+      - "plugin-cashup-state:/home/nio-smith/plugins/cashup/cashup.json:rw"
       # read only config volume!
       # not considering build context, so go one level up
       - "../data/config:/home/nio-smith/data/config:ro"

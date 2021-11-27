@@ -42,6 +42,10 @@ sudo docker volume create \
   --opt type=none \
   --opt o=bind \
   --opt device="~/bot/nio-smith/data/state" nio-state
+sudo docker volume create \
+  --opt type=none \
+  --opt o=bind \
+  --opt device="~/bot/nio-smith/plugins/cashup/cashup.json" plugin-cashup-state
 ```
 
 TODO delete or implement docker hub stuff!
