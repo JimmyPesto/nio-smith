@@ -22,9 +22,9 @@
 # We use an initial docker container to build all of the runtime dependencies,
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
-ARG PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.9
 ARG SOURCE_DIR=/home/nio-smith
-FROM docker.io/python:${PYTHON_VERSION}-alpine3.11 as builder
+FROM docker.io/python:${PYTHON_VERSION}-alpine as builder
 
 ARG SOURCE_DIR
 
@@ -79,7 +79,7 @@ RUN find ${SOURCE_DIR}/plugins/ -iname requirements.txt -exec pip install --pref
 
 # Create the container we'll actually ship. We need to copy libolm and any
 # python dependencies that we built above to this container
-FROM docker.io/python:${PYTHON_VERSION}-alpine3.11
+FROM docker.io/python:${PYTHON_VERSION}-alpine
 #FROM docker.io/python:${PYTHON_VERSION}-slim
 ARG SOURCE_DIR
 
@@ -94,9 +94,10 @@ RUN adduser -D -h ${SOURCE_DIR} nio-smith
 # [How do I add a user when I'm using Alpine as a base image?](https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image#)
 # [Setting up a new user](https://wiki.alpinelinux.org/wiki/Setting_up_a_new_user)
 WORKDIR ${SOURCE_DIR}
-RUN mkdir -p /home/nio-smith/data/state
+RUN mkdir -p ${SOURCE_DIR}/data/state
 RUN chown nio-smith:nio-smith /home/nio-smith/data/state
 RUN mkdir -p ${SOURCE_DIR}/plugins/
+COPY plugins/ ${SOURCE_DIR}/plugins/
 RUN chown -R nio-smith:nio-smith ${SOURCE_DIR}/plugins/
 USER nio-smith
 
@@ -105,7 +106,7 @@ COPY main.py README.md ${SOURCE_DIR}/
 COPY core/*.py ${SOURCE_DIR}/core/
 RUN mkdir -p ${SOURCE_DIR}/plugins
 #COPY plugins/*.py ${SOURCE_DIR}/plugins/ # maybe later only copy py files?
-COPY plugins/ ${SOURCE_DIR}/plugins/
+#COPY plugins/ ${SOURCE_DIR}/plugins/ # was working before
 
 # Copy python dependencies from the "builder" container
 COPY --from=builder /python-libs /usr/local

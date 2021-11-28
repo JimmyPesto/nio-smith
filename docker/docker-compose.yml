@@ -38,7 +38,8 @@ services:
       - "nio-state:/home/nio-smith/data/state:rw"
       # external volume containing plugin cashup state
       # read/write state volume!
-      - "plugin-cashup-state:/home/nio-smith/plugins/cashup/cashup.json:rw"
+      #- "plugin-cashup-state:/home/nio-smith/plugins/cashup/cashup.json:rw"
+      - "../plugins/cashup/:/home/nio-smith/plugins/cashup/:rw"
       # read only config volume!
       # not considering build context, so go one level up
       - "../data/config:/home/nio-smith/data/config:ro"
