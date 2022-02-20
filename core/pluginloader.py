@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class PluginLoader:
-
     def __init__(self, config, plugins_dir: str = "plugins"):
         """
         Handles importing and running plugins
@@ -34,8 +33,8 @@ class PluginLoader:
         # import all plugins
         module_all = glob.glob(f"{plugins_dir}/*")
         module_all.sort()
-        module_dirs: List[str] = [basename(d) for d in module_all if isdir(d) and not d.endswith('__pycache__')]
-        module_files: List[str] = [basename(f)[:-3] for f in module_all if isfile(f) and f.endswith('.py') and not f.endswith('__init__.py')]
+        module_dirs: List[str] = [basename(d) for d in module_all if isdir(d) and not d.endswith("__pycache__")]
+        module_files: List[str] = [basename(f)[:-3] for f in module_all if isfile(f) and f.endswith(".py") and not f.endswith("__init__.py")]
 
         if self.config.plugins_allowlist:
             logger.info(f"Plugin allowlist: {self.config.plugins_allowlist}")
@@ -50,6 +49,8 @@ class PluginLoader:
                     logger.error(f"Error importing {module}. Please check requirements: {traceback.format_exc(limit=1)}")
                 except KeyError:
                     logger.error(f"Error importing {module} due to missing configuration items. Skipping.")
+                except Exception:
+                    logger.error(f"Error importing {module} due to the following error: {traceback.format_exc(limit=1)}.\nSkipping.")
             else:
                 logger.info(f"Skipping plugin {module} as it hasn't been allowed by configuration.")
         for module in module_files:
@@ -61,6 +62,8 @@ class PluginLoader:
                     logger.error(f"Error importing {module}. Please check requirements: {traceback.format_exc(limit=1)}")
                 except KeyError:
                     logger.error(f"Error importing {module} due to missing configuration items. Skipping.")
+                except Exception:
+                    logger.error(f"Error importing {module} due to the following error: {traceback.format_exc(limit=1)}.\nSkipping.")
             else:
                 logger.info(f"Skipping plugin {module} as it hasn't been allowed by configuration.")
 
@@ -82,7 +85,7 @@ class PluginLoader:
             if plugin._get_timers():
                 timers: List[str] = []
                 for timer in plugin._get_timers():
-                    timers.append(timer.name)
+                    timers.append(f"{timer.name} ({timer.frequency})")
                 logger.info(f"  Timers:   {', '.join(timers)}")
 
     def is_allowed_plugin(self, plugin: str):
@@ -213,7 +216,11 @@ class PluginLoader:
                         traceback.print_exc()
                     return 0
                 else:
-                    await send_text_to_room(command.client, command.room.room_id, f"Required power level for command {command.command} not met")
+                    await send_text_to_room(
+                        command.client,
+                        command.room.room_id,
+                        f"Required power level for command {command.command} not met",
+                    )
                     return 2
             else:
                 return 1
@@ -234,8 +241,9 @@ class PluginLoader:
             plugin_hook: PluginHook
 
             for plugin_hook in plugin_hooks:
-                if (not plugin_hook.room_id_list or room.room_id in plugin_hook.room_id_list) and \
-                        (not plugin_hook.event_ids or event.source['content']['m.relates_to']['event_id'] in plugin_hook.event_ids):
+                if (not plugin_hook.room_id_list or room.room_id in plugin_hook.room_id_list) and (
+                    not plugin_hook.event_ids or event.source["content"]["m.relates_to"]["event_id"] in plugin_hook.event_ids
+                ):
                     # plugin_hook is valid for room of the current event and
                     # event relates to a specified event_id
 
@@ -246,39 +254,37 @@ class PluginLoader:
                         logger.critical(f"Plugin failed to catch exception caused by hook {plugin_hook.method} on {room} for {event}:")
                         traceback.print_exc()
 
-    async def run_timers(self, client, timestamp: float, filepath: str) -> float:
+    async def run_timers(self, client, timestamp: float) -> float:
         """
         Checks all timers if their execution is due and executes them
         :param client:
         :param timestamp: timestamp of last execution to make sure we're not running more than once every 30s
-        :param filepath: path to the file to store all timers' last execution dates for persistence
         :return:
         """
 
         """Do not run timers more often than every 30s"""
-        if time() >= timestamp+30:
+        if time() >= timestamp + 30:
 
             timer: Timer
-            timers_triggered: bool = False
+            affected_plugins: List[str] = []
 
             # check all timers for execution
             for timer in self.get_timers():
                 try:
                     if await timer.trigger(client):
                         logger.debug(f"Timer {timer.name} triggered")
-                        timers_triggered = True
+                        affected_plugins.append(timer.name.split(".")[0])
                 except Exception:
                     logger.critical(f"Plugin failed to catch exception caused by timer {timer.name}:")
                     traceback.print_exc()
 
-            if timers_triggered:
-                # save all plugin-states as we currently do not know, which plugin's timer triggered
-                # TODO: only save state of affected plugins
+            # save state of a plugin if it's timer has triggered
+            if affected_plugins:
                 plugin: Plugin
                 for plugin in self.get_plugins().values():
-                    plugin._save_state()
+                    if plugin.name in affected_plugins:
+                        plugin._save_state()
 
             return time()
         else:
             return timestamp
-

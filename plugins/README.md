@@ -1,28 +1,38 @@
 # Plugins
 ## Included Plugins
 Note: automatic loading of plugins can be configured by allow- and denylist in the bot's configuration.  
+- `cashup`: settle expenses among a group ([README.md](cashup/README.md)) (Contributed by [JimmyPesto](https://github.com/JimmyPesto/nio-smith))
 - `dates`: stores dates and birthdays, posts reminders ([README.md](dates/README.md))
-- `echo`: echoes back text following the command.
-- `help`: lists all available plugins. If called with a plugin as parameter, lists all available commands
-- `meter`: accurately measures someones somethingness
-- `oracle`: predicts the inevitable future (german, sorry)
-- `pick`: aids you in those really important life decisions
-- `quote`: store quotes and provide several means to display them
-- `roll`: the dice giveth and the dice taketh away
-- `sample`: just a simple sample, demonstrating the current capabilities of the `Plugin` interface
-([README.md](sample/README.md))
-- `sonarr`: provides commands to query sonarr's API
-- `spruch`: famous quotes from even more famous people (german, sorry)
-- `translate`: provide translations of all room-messages via Google Translate (using googletrans, may break randomly) 
-([README.md](translate/README.md))
-- `cashup`: settle expenses among a group ([README.md](cashup/README.md))
+- `echo`: echoes back text following the command. ([README.md](echo/README.md))
+- `federation_status`: Checks federation-status of all connected homeservers ([README.md](federation_status/README.md))
+- `help`: lists all available plugins. If called with a plugin as parameter, lists all available commands ([README.md](help/README.md))
+- `manage_bot`: Various commands to manage the bot interactively. ([README.md](manage_bot/README.md))
+- `meter`: Plugin to provide a simple, randomized meter ([README.md](meter/README.md))
+- `oracle`: predicts the inevitable future (german, sorry) ([README.md](oracle/README.md))
+- `pick`: Pick a random item from a given list of items. ([README.md](pick/README.md))
+- `quote`: Store conversations as quotes to be displayed later. ([README.md](quote/README.md))
+- `roll`: Roll one or more dice. The trigger is 'roll'. ([README.mde](roll/README.md))
+- `sample`: Collection of several sample commands to illustrate usage and maybe serve as a plugin template. ([README.md](sample/README.md))
+- `sonarr`: Provides commands to query sonarr's API. ([README.md](sonarr/README.md))
+- `spruch`: Posts a random quote by more or less famous persons. (german, sorry) ([README.md](spruch/README.md))
+- `translate`: Provide translations of all room-messages via Google Translate ([README.md](translate/README.md))
+- `wiki`: Lookup keywords in various online encyclopedias. ([README.md](wiki/README.md))
+- `wissen`: Post a random or specific entry of the database of useless knowledge. (german, sorry) ([README.md](wissen/README.md))
+- `xkcd_comic`: Post an xkcd-comic as image or url. ([README.md](xkcd_comic/README.md))
 
 ## Included plugins' 3rd party requirements
-- `dates`: [dateparser](https://pypi.org/project/dateparser/) to allow for almost arbitrary input format of dates
+- `dates`:
+  - [dateparser](https://pypi.org/project/dateparser/) to allow for almost arbitrary input format of dates
 - `sonarr`:
   - [requests](https://pypi.org/project/requests/) to query sonarr's API
   - [humanize](https://pypi.org/project/humanize/)
-- `translate`: [googletrans](https://pypi.org/project/googletrans/) to provide language detection and translation
+- `translate`:
+  - Python 3.9 
+  - [freetranslate](https://pypi.org/project/freetranslate/) to provide language detection and translation
+- `wiki`:
+  - [wikipedia](https://pypi.org/project/wikipedia/) to interact with wikipedia
+- `xkcd_comic`:
+  - [xkcd](https://pypi.org/project/xkcd/) to retrieve xkcd-comics
 
 ## Plugins can
 - ✔ use (almost) arbitrary python-code
@@ -60,6 +70,7 @@ Note: automatic loading of plugins can be configured by allow- and denylist in t
 - ✔ adhere to [PEP 8](https://www.python.org/dev/peps/pep-0008/) (except for
 [maximum-line-length](https://www.python.org/dev/peps/pep-0008/#maximum-line-length) - anything up to 160 is fine by
  me)
+- ✔ be formatted with `black -l 160` (See [black](https://pypi.org/project/black/) for details)
 - ✔ contain a README.md in their directory for a detailed description about
     - their intended use,
     - usage of commands and
@@ -95,6 +106,7 @@ Please be advised that the plugin interface is about to
 ### Interactions
 #### Messages
 - `replace_message`: replace (edit) a previously sent message
+- `replace_notice`: replace (edit) a previously sent notice
 - `respond_message`: respond to a command with a message
 - `respond_notice`: respond to a command with a notice (also called "bot message")
 - `send_message`: send a message to a room
@@ -104,12 +116,17 @@ Please be advised that the plugin interface is about to
 - `send_reaction`: react to a specific event
 
 #### Deletion
-- `redact_event`: Redact (delete) an event
+- `redact_event`: Redact (delete) an event (e.g. a message, notice or reaction)
 
 #### Other
 - `get_mx_user_id`: given a displayname and a command, returns a mx user id
 - `is_user_in_room`: checks if a given displayname is a member of the current room
+- `is_user_id_in_room`: checks if a given userid is a member of the current room
 - `link_user`: given a displayname, returns a link to the user (rendered as userpill in [Element](https://element.io))
+- `link_user_by_id`: given a userid, returns a link to the user (rendered as userpill in [Element](https://element.io))
+- `get_connected_servers`: Get a list of connected servers for a list of rooms. Returns all connected servers if room_id_list is empty.
+- `get_rooms_for_server`: Get a list of rooms the bot shares with users of the given server.
+- `get_users_on_servers`: Get a list of users on a specific homeserver in a list of rooms. Returns all known users if room_id_list is empty.
 
 ### Data persistence
 - `store_data`: persistently store data for later use

@@ -1,23 +1,39 @@
+import io
 import os.path
 from os import remove, path
 import pickle
 from typing import List, Any, Dict, Callable, Union, Hashable, Tuple
 import datetime
+
+import requests
 import yaml
-from core.chat_functions import send_text_to_room, send_reaction, send_replace
+from core.chat_functions import (
+    send_text_to_room,
+    send_reaction,
+    send_replace,
+    send_image,
+)
 from asyncio import sleep
 import logging
-from nio import AsyncClient, JoinedMembersResponse, RoomMember, RoomSendResponse, RoomSendError
+from nio import (
+    AsyncClient,
+    JoinedMembersResponse,
+    RoomMember,
+    RoomSendResponse,
+    RoomSendError,
+    MatrixRoom,
+)
 from core.timer import Timer
 from fuzzywuzzy import fuzz
 import copy
 import jsonpickle
 import markdown
+from PIL import Image
+
 logger = logging.getLogger(__name__)
 
 
 class Plugin:
-
     def __init__(self, name: str, category: str, description: str):
         """
         commands (list[tuple]): list of commands in the form of (trigger: str, method: str, helptext: str)
@@ -82,7 +98,15 @@ class Plugin:
 
         return command_help
 
-    def add_command(self, command: str, method: Callable, help_text: str, room_id: List[str] = None, power_level: int = 0, command_type: str = "static"):
+    def add_command(
+        self,
+        command: str,
+        method: Callable,
+        help_text: str,
+        room_id: List[str] = None,
+        power_level: int = 0,
+        command_type: str = "static",
+    ):
         """
         Adds a new command
         :param command: the actual name of the command, e.g. !help
@@ -94,7 +118,14 @@ class Plugin:
         :return:
         """
 
-        plugin_command = PluginCommand(command, method, help_text, power_level=power_level, room_id=room_id, command_type=command_type)
+        plugin_command = PluginCommand(
+            command,
+            method,
+            help_text,
+            power_level=power_level,
+            room_id=room_id,
+            command_type=command_type,
+        )
         if command not in self.commands.keys():
             self.commands[command] = plugin_command
             self.help_texts[command] = help_text
@@ -140,7 +171,14 @@ class Plugin:
 
         return self.commands
 
-    def add_hook(self, event_type: str, method: Callable, room_id_list: List[str] = [], event_ids: List[str] = [], hook_type: str = "static"):
+    def add_hook(
+        self,
+        event_type: str,
+        method: Callable,
+        room_id_list: List[str] or None = None,
+        event_ids: List[str] or None = None,
+        hook_type: str = "static",
+    ):
         """
         Hook into events defined by event_type with `method`.
         Will overwrite existing hooks with the same event_type and method.
@@ -157,7 +195,15 @@ class Plugin:
 
             if event_type not in self.hooks.keys():
                 # no hooks for event_type, add a event_type and hook
-                self.hooks[event_type] = [PluginHook(event_type, method, room_id_list=room_id_list, event_ids=event_ids, hook_type=hook_type)]
+                self.hooks[event_type] = [
+                    PluginHook(
+                        event_type,
+                        method,
+                        room_id_list=room_id_list,
+                        event_ids=event_ids,
+                        hook_type=hook_type,
+                    )
+                ]
 
             else:
                 hook: PluginHook
@@ -169,7 +215,15 @@ class Plugin:
                         break
                 else:
                     # no hook for the given method, append a new hook
-                    self.hooks[event_type].append(PluginHook(event_type, method, room_id_list=room_id_list, event_ids=event_ids, hook_type=hook_type))
+                    self.hooks[event_type].append(
+                        PluginHook(
+                            event_type,
+                            method,
+                            room_id_list=room_id_list,
+                            event_ids=event_ids,
+                            hook_type=hook_type,
+                        )
+                    )
 
             if hook_type == "dynamic":
                 self._save_state()
@@ -179,7 +233,7 @@ class Plugin:
 
         return self.hooks
 
-    def del_hook(self, event_type: str, method: Callable, room_id_list: List[str] = []) -> bool:
+    def del_hook(self, event_type: str, method: Callable, room_id_list: List[str] or None = None) -> bool:
         """
         Remove an active hook for the given event_type and method and an optional list of rooms
         :param event_type: event_type: event-type to hook into, currently "m.reaction" and "m.room.message"
@@ -226,7 +280,7 @@ class Plugin:
         else:
             return False
 
-    def has_hook(self, event_type: str, method: Callable, room_id_list: List[str] = []) -> bool:
+    def has_hook(self, event_type: str, method: Callable, room_id_list: List[str] or None = None) -> bool:
         """
         Check a hook exists for a given event_type, method and ALL given room_ids
         :param event_type: event_type: event-type to hook into, currently "m.reaction" and "m.room.message"
@@ -248,7 +302,7 @@ class Plugin:
                         return True
                     else:
                         # hook has specified rooms, check if all of given room_id_list are contained
-                        if all(elem in plugin_hook.room_id_list for elem in room_id_list):
+                        if not room_id_list or all(elem in plugin_hook.room_id_list for elem in room_id_list):
                             return True
                         else:
                             # hook is not valid for all given room-ids
@@ -256,7 +310,12 @@ class Plugin:
         else:
             return False
 
-    def add_timer(self, method: Callable, frequency: str or datetime.timedelta or None = None, timer_type: str = "static"):
+    def add_timer(
+        self,
+        method: Callable,
+        frequency: str or datetime.timedelta or None = None,
+        timer_type: str = "static",
+    ):
         """
 
         :param method: the method to be called when the timer trigger
@@ -272,7 +331,14 @@ class Plugin:
         :return:
         """
 
-        self.timers.append(Timer(f"{self.name}.{method.__name__}", method, frequency=frequency, timer_type=timer_type))
+        self.timers.append(
+            Timer(
+                f"{self.name}.{method.__name__}",
+                method,
+                frequency=frequency,
+                timer_type=timer_type,
+            )
+        )
         if timer_type == "dynamic":
             self._save_state()
 
@@ -365,7 +431,10 @@ class Plugin:
         """
 
         if self.plugin_data != {}:
-            return await self.__save_data_to_json_file(self.plugin_data, f"{self.plugin_dataj_filename}.bak.{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
+            return await self.__save_data_to_json_file(
+                self.plugin_data,
+                f"{self.plugin_dataj_filename}.bak.{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            )
         else:
             return False
 
@@ -391,8 +460,11 @@ class Plugin:
 
         file = open(filename, "r")
         json_data: str = file.read()
-        if convert and f"\"py/object\": \"plugins.{self.name}.{self.name}." not in json_data:
-            json_data = json_data.replace(f"\"py/object\": \"plugins.{self.name}.", f"\"py/object\": \"plugins.{self.name}.{self.name}.")
+        if convert and f'"py/object": "plugins.{self.name}.{self.name}.' not in json_data:
+            json_data = json_data.replace(
+                f'"py/object": "plugins.{self.name}.',
+                f'"py/object": "plugins.{self.name}.{self.name}.',
+            )
         data = jsonpickle.decode(json_data)
 
         return data
@@ -412,8 +484,10 @@ class Plugin:
                 # local json data found, convert if needed
                 plugin_data_from_json = await self.__load_json_data_from_file(self.plugin_dataj_filename, self.is_directory_based)
                 if os.path.isfile(self.plugin_data_filename):
-                    logger.warning(f"Data for {self.name} read from {self.plugin_dataj_filename}, but {self.plugin_data_filename} still exists. After "
-                                   f"verifying, that {self.name} is running correctly, please remove {self.plugin_data_filename}")
+                    logger.warning(
+                        f"Data for {self.name} read from {self.plugin_dataj_filename}, but {self.plugin_data_filename} still exists. After "
+                        f"verifying, that {self.name} is running correctly, please remove {self.plugin_data_filename}"
+                    )
 
             elif os.path.isfile(self.plugin_data_filename):
                 # local pickle-data found
@@ -434,7 +508,7 @@ class Plugin:
             return {}
 
         if abandoned_data:
-            if 'abandoned_json_file' in locals() and os.path.isfile(abandoned_json_file):
+            if "abandoned_json_file" in locals() and os.path.isfile(abandoned_json_file):
                 logger.warning(f"You may remove {abandoned_json_file} now, it is no longer being used.")
             await self.__save_data_to_json_file(plugin_data_from_json, self.plugin_dataj_filename)
 
@@ -530,7 +604,15 @@ class Plugin:
         markdown_body: str = markdown.markdown(body)
         return f"<details><summary>{markdown_header}</summary><br>{markdown_body}</details>"
 
-    async def send_message(self, client, room_id, message: str, expanded_message: str = "", delay: int = 0, markdown_convert: bool = True) -> str or None:
+    async def send_message(
+        self,
+        client,
+        room_id,
+        message: str,
+        expanded_message: str = "",
+        delay: int = 0,
+        markdown_convert: bool = True,
+    ) -> str or None:
         """
         Send a message to a room, usually utilized by plugins to respond to commands
         :param client: AsyncClient used to send the message
@@ -547,7 +629,7 @@ class Plugin:
                 delay = 1000
 
             await client.room_typing(room_id, timeout=delay)
-            await sleep(float(delay/1000))
+            await sleep(float(delay / 1000))
             await client.room_typing(room_id, typing_state=False)
 
         if expanded_message:
@@ -557,9 +639,17 @@ class Plugin:
         if isinstance(event_response, RoomSendResponse):
             return event_response.event_id
         else:
+            logger.warning(f"Error sending {message} to {room_id}: {event_response}")
             return None
 
-    async def respond_message(self, command, message: str, expanded_message: str = "", delay: int = 0, markdown_convert: bool = True) -> str or None:
+    async def respond_message(
+        self,
+        command,
+        message: str,
+        expanded_message: str = "",
+        delay: int = 0,
+        markdown_convert: bool = True,
+    ) -> str or None:
         """
         Simplified version of self.send_message() to reply to commands
         :param command: the command object passed by the message we're responding to
@@ -570,7 +660,14 @@ class Plugin:
         :return: the event_id of the sent message or None in case of an error
         """
 
-        return await self.send_message(command.client, command.room.room_id, message, expanded_message=expanded_message, delay=delay, markdown_convert=markdown_convert)
+        return await self.send_message(
+            command.client,
+            command.room.room_id,
+            message,
+            expanded_message=expanded_message,
+            delay=delay,
+            markdown_convert=markdown_convert,
+        )
 
     async def message(self, client, room_id, message: str, delay: int = 0) -> str or None:
         """
@@ -586,7 +683,14 @@ class Plugin:
         logger.warning(f"Deprecated function 'reply' used - use 'respond_message' instead")
         return await self.respond_message(command, message, delay=delay)
 
-    async def send_notice(self, client, room_id: str, message: str, expanded_message: str = "", markdown_convert: bool = True) -> str or None:
+    async def send_notice(
+        self,
+        client,
+        room_id: str,
+        message: str,
+        expanded_message: str = "",
+        markdown_convert: bool = True,
+    ) -> str or None:
         """
         Send a notice to a room, usually utilized by plugins to post errors, help texts or other messages not warranting pinging users
         :param client: AsyncClient used to send the message
@@ -601,12 +705,19 @@ class Plugin:
             message = await self.__expandable_message_body(message, expanded_message)
         event_response: RoomSendResponse or RoomSendError = await send_text_to_room(client, room_id, message, notice=True, markdown_convert=markdown_convert)
 
-        if event_response:
+        if isinstance(event_response, RoomSendResponse):
             return event_response.event_id
         else:
+            logger.warning(f"Error sending {message} to {room_id}: {event_response}")
             return None
 
-    async def respond_notice(self, command, message: str, expanded_message: str = "", markdown_convert: bool = True) -> str or None:
+    async def respond_notice(
+        self,
+        command,
+        message: str,
+        expanded_message: str = "",
+        markdown_convert: bool = True,
+    ) -> str or None:
         """
         Simplified version of self.notice() to reply to commands
         :param command: the command object passed by the message we're responding to
@@ -616,7 +727,13 @@ class Plugin:
         :return: the event_id of the sent message or None in case of an error
         """
 
-        return await self.send_notice(command.client, command.room.room_id, message, expanded_message=expanded_message, markdown_convert=markdown_convert)
+        return await self.send_notice(
+            command.client,
+            command.room.room_id,
+            message,
+            expanded_message=expanded_message,
+            markdown_convert=markdown_convert,
+        )
 
     async def notice(self, client, room_id: str, message: str) -> str or None:
         """
@@ -631,6 +748,29 @@ class Plugin:
         """
         logger.warning(f"Deprecated function 'reply_notice' used - use 'respond_notice' instead")
         return await self.respond_notice(command, message)
+
+    async def replace_notice(
+        self,
+        client: AsyncClient,
+        room_id: str,
+        event_id: str,
+        message: str,
+        expanded_message: str = "",
+    ) -> str or None:
+        """
+        Edits an event. send_replace() will check if the new content actually differs before really sending the replacement
+        :param client: (nio.AsyncClient) The client to communicate to matrix with
+        :param room_id: (str) room_id of the original event
+        :param event_id: (str) event_id to edit
+        :param message: (str) the new message
+        :param expanded_message: an optional part of the message only visible after expanding the message (at least on Element Web)
+        :return:    (str) the event-id of the new room-event, if the original event has been replaced or
+                    None, if the event has not been edited
+        """
+
+        if expanded_message:
+            message = await self.__expandable_message_body(message, expanded_message)
+        return await send_replace(client, room_id, event_id, message, message_type="m.notice")
 
     async def send_reaction(self, client, room_id: str, event_id: str, reaction: str):
         """
@@ -651,7 +791,14 @@ class Plugin:
         logger.warning(f"Deprecated function 'react' used - use 'send_reaction' instead")
         await self.send_reaction(client, room_id, event_id, reaction)
 
-    async def replace_message(self, client: AsyncClient, room_id: str, event_id: str, message: str, expanded_message: str = "") -> str or None:
+    async def replace_message(
+        self,
+        client: AsyncClient,
+        room_id: str,
+        event_id: str,
+        message: str,
+        expanded_message: str = "",
+    ) -> str or None:
         """
         Edits an event. send_replace() will check if the new content actualy differs before really sending the replacement
         :param client: (nio.AsyncClient) The client to communicate to matrix with
@@ -664,8 +811,8 @@ class Plugin:
         """
 
         if expanded_message:
-            message = self.__expandable_message_body(message, expanded_message)
-        return await send_replace(client, room_id, event_id, message)
+            message = await self.__expandable_message_body(message, expanded_message)
+        return await send_replace(client, room_id, event_id, message, message_type="m.text")
 
     async def replace(self, client: AsyncClient, room_id: str, event_id: str, message: str) -> str or None:
         """
@@ -700,7 +847,34 @@ class Plugin:
         logger.warning(f"Deprecated function 'message_delete' used - use 'redact_message' instead")
         await self.redact_message(client, room_id, event_id, reason)
 
-    async def is_user_in_room(self, client: AsyncClient, room_id: str, display_name: str, strictness: str = "loose", fuzziness: int = 75) -> RoomMember or None:
+    async def send_image(self, client: AsyncClient, room_id: str, image: Image):
+        """
+        Posts an image to the given room
+        :param client:
+        :param room_id:
+        :param image:
+        :return:
+        """
+
+        if image is not None:
+            event_response: RoomSendResponse or RoomSendError = await send_image(client, room_id, image)
+
+            if isinstance(event_response, RoomSendResponse):
+                return event_response.event_id
+            else:
+                return None
+        else:
+            logger.warning(f"send_image called without valid image")
+            return None
+
+    async def is_user_in_room(
+        self,
+        client: AsyncClient,
+        room_id: str,
+        display_name: str,
+        strictness: str = "loose",
+        fuzziness: int = 75,
+    ) -> RoomMember or None:
         """
         Try to determine if a diven displayname is currently a member of the room
         :param client: AsyncClient
@@ -745,7 +919,33 @@ class Plugin:
             else:
                 return None
 
-    async def link_user(self, client: AsyncClient, room_id: str, display_name: str, strictness: str = "loose", fuzziness: int = 75) -> str or None:
+    async def is_user_id_in_room(self, client: AsyncClient, room_id: str, user_id: str) -> RoomMember or None:
+        """
+        Try to determine if a diven displayname is currently a member of the room
+        :param client: AsyncClient
+        :param room_id: id of the room to check for a user
+        :param user_id: id of the user to check for
+        :return:    RoomMember matching the user_id if found,
+                    None otherwise
+        """
+
+        room_members: JoinedMembersResponse = await client.joined_members(room_id)
+        room_member: RoomMember
+
+        for room_member in room_members.members:
+            if room_member.user_id == user_id:
+                return room_member
+
+        return None
+
+    async def link_user(
+        self,
+        client: AsyncClient,
+        room_id: str,
+        display_name: str,
+        strictness: str = "loose",
+        fuzziness: int = 75,
+    ) -> str:
         """
         Given a displayname and a command, returns a userlink
         :param client: AsyncClient
@@ -762,11 +962,33 @@ class Plugin:
 
         user: RoomMember
         if user := await self.is_user_in_room(client, room_id, display_name, strictness=strictness, fuzziness=fuzziness):
-            return f"<a href=\"https://matrix.to/#/{user.user_id}\">{user.display_name}</a>"
+            return f'<a href="https://matrix.to/#/{user.user_id}">{user.display_name}</a>'
         else:
             return display_name
 
-    async def get_mx_user_id(self, client: AsyncClient, room_id: str, display_name: str, strictness="loose", fuzziness: int = 75) -> str or None:
+    async def link_user_by_id(self, client: AsyncClient, room_id: str, user_id: str) -> str:
+        """
+        Given a user_id, returns a userlink if the user has been found. Returns the unchanged user_id otherwise.
+        :param client:
+        :param room_id:
+        :param user_id:
+        :return:
+        """
+
+        user: RoomMember
+        if user := await self.is_user_id_in_room(client, room_id, user_id):
+            return f'<a href="https://matrix.to/#/{user.user_id}">{user.display_name}</a>'
+        else:
+            return user_id
+
+    async def get_mx_user_id(
+        self,
+        client: AsyncClient,
+        room_id: str,
+        display_name: str,
+        strictness="loose",
+        fuzziness: int = 75,
+    ) -> str or None:
         """
         Given a displayname and a command, returns a mx user id
         :param client:
@@ -807,7 +1029,7 @@ class Plugin:
                 self.config_items[config_item] = self.configuration.get(config_item)
 
             # otherwise apply default
-            elif default_value:
+            elif default_value is not None:
                 self.config_items[config_item] = default_value
 
             # if no value and no default, but item is not required, set it to None
@@ -878,7 +1100,11 @@ class Plugin:
                     else:
                         dynamic_hooks[event_type] = [hook]
 
-        plugin_state: Tuple[Dict, Dict, List] = (dynamic_commands, dynamic_hooks, self._get_timers())
+        plugin_state: Tuple[Dict, Dict, List] = (
+            dynamic_commands,
+            dynamic_hooks,
+            self._get_timers(),
+        )
 
         if plugin_state != ({}, {}, []):
             # we have an actual state to save
@@ -947,10 +1173,103 @@ class Plugin:
                 if state_timer.timer_type == "dynamic":
                     self.timers.append(state_timer)
 
+    async def fetch_image_from_url(self, url: str) -> Image or None:
+        """
+        Try to get an image from the given url
+        :param url: a url to an image
+        :return:    Image-Object if successfully retrieved,
+                    None otherwise
+        """
+
+        try:
+            response = requests.get(url)
+            image_bytes = io.BytesIO(response.content)
+            return Image.open(image_bytes)
+        except:
+            return None
+
+    async def get_rooms_for_server(self, client: AsyncClient, server_name: str) -> List[str]:
+        """
+        Get a list of rooms the bot shares with users of the given server
+        :param client:
+        :param server_name:
+        :return:
+        """
+
+        room_list: Dict[str, MatrixRoom] = client.rooms
+        shared_rooms: List[str] = []
+
+        room: MatrixRoom
+        for room in room_list.values():
+            user_id: str
+            for user_id in room.users:
+                if server_name == user_id.split(":")[1] and room not in shared_rooms:
+                    shared_rooms.append(room.room_id)
+
+        return shared_rooms
+
+    async def get_connected_servers(self, client: AsyncClient, room_id_list: List[str]) -> List[str]:
+        """
+        Get a list of connected servers for a list of rooms. Returns all connected servers if room_id_list is empty.
+        :param room_id_list:
+        :param client:
+        :return:
+        """
+
+        connected_servers: List[str] = []
+
+        if not room_id_list:
+            room_id_list = list(client.rooms.keys())
+
+        room_id: str
+        for room_id in room_id_list:
+            user_id: str
+            for user_id in client.rooms[room_id].users:
+                server_name: str = user_id.split(":")[1]
+                if server_name not in connected_servers:
+                    connected_servers.append(server_name)
+
+        connected_servers.sort()
+        return connected_servers
+
+    async def get_users_on_servers(self, client: AsyncClient, home_servers: List[str], room_id_list: List[str]) -> Dict[str, List[str]]:
+        """
+        Get a list of users on a specific homeserver in a list of rooms. Returns all known users if room_id_list is empty.
+        :param home_servers: the homeservers to test for
+        :param client:
+        :param room_id_list: List of rooms to check users in.
+        :return:
+        """
+
+        home_server_users: Dict[str, List[str]] = {}
+        if not room_id_list:
+            room_id_list = list(client.rooms.keys())
+
+        room_id: str
+        for room_id in room_id_list:
+            user_id: str
+            for user_id in client.rooms[room_id].users:
+                user_server_name: str = user_id.split(":")[1]
+                if user_server_name in home_servers:
+                    if user_server_name in home_server_users.keys():
+                        if user_id not in home_server_users[user_server_name]:
+                            home_server_users[user_server_name].append(user_id)
+                    else:
+                        home_server_users[user_server_name] = [user_id]
+
+        return home_server_users
+
 
 class PluginCommand:
-
-    def __init__(self, command: str, method: Callable, help_text: str, power_level, room_id: List[str], command_type: str = "static"):
+    def __init__(
+        self,
+        command: str,
+        method: Callable,
+        help_text: str,
+        power_level,
+        room_id: List[str],
+        command_type: str = "static",
+    ):
         """
         Initialise a PluginCommand
         :param command: the actual command used to call the Command, e.g. "help"
@@ -980,8 +1299,14 @@ class PluginCommand:
 
 
 class PluginHook:
-
-    def __init__(self, event_type: str, method: Callable, room_id_list: List[str] = [], event_ids: List[str] = [], hook_type: str = "static"):
+    def __init__(
+        self,
+        event_type: str,
+        method: Callable,
+        room_id_list: List[str] = [],
+        event_ids: List[str] = [],
+        hook_type: str = "static",
+    ):
         """
         Initialise a PluginHook
         :param event_type: the event_type the hook is being executed for

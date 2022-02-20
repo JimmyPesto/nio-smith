@@ -1,6 +1,7 @@
 Nio Smith
 ===
 [![Built with matrix-nio](https://img.shields.io/badge/built%20with-matrix--nio-brightgreen)](https://github.com/poljar/matrix-nio)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![#nio-smith](https://img.shields.io/matrix/nio-smith:matrix.org?color=blue&label=Join%20%23nio-smith)](https://matrix.to/#/!rdBDrHapAsYdvmgGMP:pack.rocks?via=pack.rocks)
 
 A plugin-based bot for [@matrix-org](https://github.com/matrix-org),  
@@ -32,10 +33,14 @@ See [plugins/README.md](plugins/README.md) for further details on plugin capabil
 [docs/SETUP.md](docs/SETUP.md) contains a short guide on getting you started with the bot.
 
 ## Requirements
-- python 3.8 or later
+- python 3.8 or later (be aware that specific plugins might require newer python versions).
 - [libolm](https://gitlab.matrix.org/matrix-org/olm)    
 - [matrix-nio](https://matrix-nio.readthedocs.io/en/latest/nio.html) with end-to-end-encryption enabled
 - [fuzzywuzzy](https://github.com/seatgeek/fuzzywuzzy) for fuzzy command matching and nick linking (yes, it's worth it)
+- [Pillow](https://pypi.org/project/Pillow/) for image-handling
+- [blurhash-python](https://pypi.org/project/blurhash-python/) to generate blurhashes of image files
+- [aiofiles](https://pypi.org/project/aiofiles/) for file-handling
+- [requests](https://pypi.org/project/requests/) for fetching images
 
 See [plugins/README.md](plugins/README.md) for further details on additional plugin requirements.
 

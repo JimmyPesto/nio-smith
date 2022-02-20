@@ -4,6 +4,7 @@ import logging
 import asyncio
 import os
 import sys
+import traceback
 from time import time
 from asyncio import sleep
 
@@ -12,13 +13,14 @@ from nio import (
     AsyncClientConfig,
     RoomMessageText,
     InviteEvent,
-    LocalProtocolError, LoginError, UnknownEvent)
+    LocalProtocolError,
+    LoginError,
+    UnknownEvent,
+)
 from core.callbacks import Callbacks
 from core.config import Config
 from core.storage import Storage
-from aiohttp.client_exceptions import (
-    ServerDisconnectedError,
-    ClientConnectionError)
+from aiohttp.client_exceptions import ServerDisconnectedError, ClientConnectionError, ClientConnectorError
 
 from core.pluginloader import PluginLoader
 
@@ -26,7 +28,6 @@ logger = logging.getLogger(__name__)
 client: AsyncClient
 plugin_loader: PluginLoader
 timestamp: float = time()
-timers_filepath: str = ""
 
 
 async def run_plugins(response):
@@ -34,9 +35,8 @@ async def run_plugins(response):
     global plugin_loader
     global client
     global timestamp
-    global timers_filepath
 
-    timestamp = await plugin_loader.run_timers(client, timestamp, timers_filepath)
+    timestamp = await plugin_loader.run_timers(client, timestamp)
 
 
 async def main():
@@ -45,7 +45,6 @@ async def main():
     # probably using https://docs.python.org/3.8/library/functools.html#functools.partial
     global client
     global plugin_loader
-    global timers_filepath
 
     # Read user-configured options from a config file.
     # A different config file path can be specified as the first command line argument
@@ -149,8 +148,15 @@ async def main():
             logger.info(f"Logged in as {config.user_id}")
             await client.sync_forever(timeout=30000, full_state=True)
 
-        except (ClientConnectionError, ServerDisconnectedError, AttributeError, asyncio.TimeoutError) as err:
+        except (
+            ClientConnectionError,
+            ServerDisconnectedError,
+            AttributeError,
+            asyncio.TimeoutError,
+            ClientConnectorError
+        ) as err:
             logger.debug(err)
+            logger.debug(traceback.print_exc())
             logger.warning(f"Unable to connect to homeserver, retrying in 15s...")
 
             # Sleep so we don't bombard the server with login requests

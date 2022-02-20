@@ -8,13 +8,18 @@ from shlex import split
 from sys import maxsize
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 quote_attributes: List[str] = ["user", "members"]
 """valid attributes to select quotes by"""
 
 current_version: int = 2
-plugin = Plugin("quote", "General", "Store (more or less) funny quotes and access them randomly or by search term")
+plugin = Plugin(
+    "quote",
+    "General",
+    "Store (more or less) funny quotes and access them randomly or by search term",
+)
 
 
 def setup():
@@ -24,33 +29,74 @@ def setup():
     """
 
     plugin.add_config("manage_quote_rooms", default_value=[], is_required=False)
-    plugin.add_command("quote", quote_command, "Post quotes, either randomly, by id, or by search string")
+    plugin.add_command(
+        "quote",
+        quote_command,
+        "Post quotes, either randomly, by id, or by search string",
+    )
     # plugin.add_command("quote_detail", quote_detail_command, "View a detailed output of a specific quote")
     plugin.add_command("quote_add", quote_add_command, "Add a quote")
-    plugin.add_command("quote_stats", quote_stats_command, "Display various stats about the currently stored quotes")
+    plugin.add_command(
+        "quote_stats",
+        quote_stats_command,
+        "Display various stats about the currently stored quotes",
+    )
 
-    plugin.add_command("quote_del", quote_delete_command, "Delete a quote (can be restored)",
-                       power_level=50, room_id=plugin.read_config("manage_quote_rooms"))
-    plugin.add_command("quote_restore", quote_restore_command, "Restore a quote",
-                       power_level=50, room_id=plugin.read_config("manage_quote_rooms"))
-    plugin.add_command("quote_replace", quote_replace_command, "Replace a specific quote with the supplied text - destructive, can not be reverted",
-                       power_level=50, room_id=plugin.read_config("manage_quote_rooms"))
-    plugin.add_command("quote_replace_nick", quote_replace_nick_command, "Replace a nickname in *ALL QUOTES* with another nickname - destructive, "
-                                                                         "can not be reverted. USE WITH CAUTION!",
-                       power_level=50, room_id=plugin.read_config("manage_quote_rooms"))
+    plugin.add_command(
+        "quote_del",
+        quote_delete_command,
+        "Delete a quote (can be restored)",
+        power_level=50,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
+    plugin.add_command(
+        "quote_restore",
+        quote_restore_command,
+        "Restore a quote",
+        power_level=50,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
+    plugin.add_command(
+        "quote_replace",
+        quote_replace_command,
+        "Replace a specific quote with the supplied text - destructive, can not be reverted",
+        power_level=50,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
+    plugin.add_command(
+        "quote_replace_nick",
+        quote_replace_nick_command,
+        "Replace a nickname in *ALL QUOTES* with another nickname - destructive, " "can not be reverted. USE WITH CAUTION!",
+        power_level=50,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
 
-    plugin.add_command("quote_links", quote_links_command, "Toggle automatic nickname linking",
-                       power_level=100, room_id=plugin.read_config("manage_quote_rooms"))
-    plugin.add_command("quote_links_fuzzy", quote_fuzzy_matching, "Toggle fuzzy matching for nick linking",
-                       power_level=100, room_id=plugin.read_config("manage_quote_rooms"))
-    plugin.add_command("quote_upgrade", upgrade_quotes, "Upgrade all Quotes to the most recent version",
-                       power_level=100, room_id=plugin.read_config("manage_quote_rooms"))
+    plugin.add_command(
+        "quote_links",
+        quote_links_command,
+        "Toggle automatic nickname linking",
+        power_level=100,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
+    plugin.add_command(
+        "quote_links_fuzzy",
+        quote_fuzzy_matching,
+        "Toggle fuzzy matching for nick linking",
+        power_level=100,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
+    plugin.add_command(
+        "quote_upgrade",
+        upgrade_quotes,
+        "Upgrade all Quotes to the most recent version",
+        power_level=100,
+        room_id=plugin.read_config("manage_quote_rooms"),
+    )
 
     plugin.add_hook("m.reaction", quote_add_reaction)
 
 
 class QuoteLine:
-
     def __init__(self, message: str, nick: str or None = None, message_type: str = "message"):
         """
         A specific line of a quote
@@ -75,14 +121,19 @@ class QuoteLine:
 
 
 class Quote:
-
-    def __init__(self, quote_type: str = "local", text: str = "", url: str = "",
-                 channel: str = "", mxroom: str = "",
-                 user: str = "", mxuser: str = "",
-                 date: float = time.time(),
-                 lines: List[QuoteLine] = [],
-                 quote_id: str = ""
-                 ):
+    def __init__(
+        self,
+        quote_type: str = "local",
+        text: str = "",
+        url: str = "",
+        channel: str = "",
+        mxroom: str = "",
+        user: str = "",
+        mxuser: str = "",
+        date: float = time.time(),
+        lines: List[QuoteLine] = [],
+        quote_id: str = "",
+    ):
         """
         A textual quote and all its parameters
         :param quote_type: type of the quote (local, remote)
@@ -95,7 +146,7 @@ class Quote:
         :param lines: text of the quote in separate lines
         """
 
-        self.id = quote_id
+        self.id: str = quote_id
         """id of the quote, automatically set to currently highest id + 1"""
         self.type: str = quote_type
         self.text: str = text
@@ -123,13 +174,14 @@ class Quote:
     async def set_id(self) -> str:
 
         quotes = await plugin.read_data("quotes")
+        quote_id: str
         if quotes:
             quote_id = str(max(list(map(int, quotes.keys()))) + 1)
         else:
-            quote_id = 1
+            quote_id = str(1)
 
-        self.id = quote_id
-        return quote_id
+        self.id = str(quote_id)
+        return str(quote_id)
 
     async def display_text(self, command) -> str:
         """
@@ -145,7 +197,7 @@ class Quote:
             quote_text = quote_text.replace("<+", "<")
 
             """try to find nicknames"""
-            p = re.compile(r'<(\S+)>')
+            p = re.compile(r"<(\S+)>")
             nick_list: List[str] = p.findall(quote_text)
 
             """replace problematic characters with their html-representation"""
@@ -161,26 +213,38 @@ class Quote:
                 nick: str
                 nick_link: str
                 for nick in nick_list:
-                    if nick_link := await plugin.link_user(command.client, command.room.room_id, nick, strictness="fuzzy", fuzziness=55):
+                    if nick_link := await plugin.link_user(
+                        command.client,
+                        command.room.room_id,
+                        nick,
+                        strictness="fuzzy",
+                        fuzziness=55,
+                    ):
                         quote_text = quote_text.replace(f"&lt;{nick}&gt;", nick_link)
 
         else:
             line: QuoteLine
             for line in self.lines:
                 if line.message_type == "message" or line.message_type == "action":
-                    message: str = line.message.replace("<", "&lt;").replace(">", "&gt;").replace("`", "&#96;").replace("*", '\\*').replace("_", '\\_')
+                    message: str = line.message.replace("<", "&lt;").replace(">", "&gt;").replace("`", "&#96;").replace("*", "\\*").replace("_", "\\_")
 
                     if await plugin.read_data("nick_links") and await plugin.read_data("nick_links_fuzzy"):
-                        nick: str = await plugin.link_user(command.client, command.room.room_id, line.nick, strictness="fuzzy", fuzziness=80)
+                        nick: str = await plugin.link_user(
+                            command.client,
+                            command.room.room_id,
+                            line.nick,
+                            strictness="fuzzy",
+                            fuzziness=80,
+                        )
                     elif await plugin.read_data("nick_links") and not await plugin.read_data("nick_links_fuzzy"):
                         nick: str = await plugin.link_user(command.client, command.room.room_id, line.nick)
                     else:
-                        nick: str = line.nick.replace("`", "&#96;").replace("_", '\\_')
+                        nick: str = line.nick.replace("`", "&#96;").replace("_", "\\_")
 
                     if line.message_type == "action":
                         quote_text += f"* {nick} {message}  \n"
                     else:
-                        if nick[0] == "<":
+                        if len(nick) > 0 and nick[0] == "<":
                             # nick linking successful
                             quote_text += f"{nick} {message}  \n"
                         else:
@@ -197,11 +261,13 @@ class Quote:
         :return: the detailed textual representation of the quote
         """
 
-        full_text: str = f"{self.display_text(command)}\n  " \
-                         f"Date: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.date))}\n" \
-                         f"Added by: {self.user} / {self.mxuser}\n" \
-                         f"Added on: {self.chan} / {self.mxroom}\n" \
-                         f"Rank: {self.rank}\n"
+        full_text: str = (
+            f"{self.display_text(command)}\n  "
+            f"Date: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.date))}\n"
+            f"Added by: {self.user} / {self.mxuser}\n"
+            f"Added on: {self.chan} / {self.mxroom}\n"
+            f"Rank: {self.rank}\n"
+        )
         return full_text
 
     async def match(self, search_terms: List[str]) -> bool:
@@ -269,7 +335,7 @@ class Quote:
         """
 
         # split text into lines
-        full_lines: List[str] = re.split('\r\n?|\n| [|] ', self.text)
+        full_lines: List[str] = re.split("\r\n?|\n| [|] ", self.text)
         quote_lines: List[QuoteLine] = []
 
         for line in full_lines:
@@ -278,18 +344,18 @@ class Quote:
             message_type: str
 
             if line != "":
-                if line[0] == '*':
+                if line[0] == "*":
                     message_type = "action"
-                    nick = line.split(' ')[1]
-                    message = ' '.join(line.split(' ')[2:])
+                    nick = line.split(" ")[1]
+                    message = " ".join(line.split(" ")[2:])
                 elif re.match(r"^\[.*]$", line):
                     message_type = "annotation"
                     nick = None
                     message = line[1:-1]
                 else:
                     message_type = "message"
-                    nick = line.split(' ')[0].replace('<', '').replace('>', '')
-                    message = ' '.join(line.split(' ')[1:])
+                    nick = line.split(" ")[0].replace("<", "").replace(">", "")
+                    message = " ".join(line.split(" ")[1:])
 
                 quote_lines.append(QuoteLine(message, nick=nick, message_type=message_type))
 
@@ -297,7 +363,6 @@ class Quote:
 
 
 class TrackedQuote:
-
     def __init__(self, event_id: str, quote_id: str, timestamp: float = time.time()):
         """
         A tracked quote, consisting of event, quote and timestamp to allow for tracking reactions
@@ -317,7 +382,7 @@ class TrackedQuote:
                     False, if it is not older than max_age
         """
 
-        if self.timestamp < time.time()-max_age:
+        if self.timestamp < time.time() - max_age:
             return True
         else:
             return False
@@ -332,11 +397,13 @@ async def quote_command(command):
     """
 
     """Load all active (quote.deleted == False) quotes"""
-    quotes: Dict[str, Quote] = await plugin.read_data("quotes")
-    if quotes:
-        # TODO: check if this needs fixing
+    try:
+        quotes: Dict[str, Quote] = await plugin.read_data("quotes")
         quotes = dict(filter(lambda item: not item[1].deleted, quotes.items()))
-    else:
+        if not quotes:
+            await plugin.respond_notice(command, "Error: no quotes stored")
+            return False
+    except IndexError:
         await plugin.respond_notice(command, "Error: no quotes stored")
         return False
 
@@ -373,7 +440,11 @@ async def quote_command(command):
             match_id = 0
 
         try:
-            (quote_object, match_index, total_matches) = await find_quote_by_search_term(quotes, terms, match_id)
+            (
+                quote_object,
+                match_index,
+                total_matches,
+            ) = await find_quote_by_search_term(quotes, terms, match_id)
             await post_quote(command, quote_object, match_index, total_matches)
         except TypeError:
             await plugin.respond_notice(command, f"No quote found matching {terms}")
@@ -390,7 +461,10 @@ async def post_quote(command, quote_object: Quote, match_index: int = -1, total_
     """
 
     if match_index != -1:
-        event_id: str = await plugin.respond_notice(command, f"{await quote_object.display_text(command)}  \nMatch {match_index} of {total_matches}")
+        event_id: str = await plugin.respond_notice(
+            command,
+            f"{await quote_object.display_text(command)}  \nMatch {match_index} of {total_matches}",
+        )
     else:
         event_id: str = await plugin.respond_notice(command, f"{await quote_object.display_text(command)}")
 
@@ -437,10 +511,10 @@ async def find_quote_by_search_term(quotes: Dict[str, Quote], terms: List[str], 
 
     if matching_quotes:
         if int(match_id) != 0 and match_id <= len(matching_quotes):
-            return matching_quotes[match_id-1], match_id, len(matching_quotes)
+            return matching_quotes[match_id - 1], match_id, len(matching_quotes)
         else:
             match_index: int = random.randint(1, len(matching_quotes))
-            return matching_quotes[match_index-1], match_index, len(matching_quotes)
+            return matching_quotes[match_index - 1], match_index, len(matching_quotes)
     else:
         return None
 
@@ -504,7 +578,7 @@ async def quote_replace_command(command):
     :return:
     """
 
-    if len(command.args) > 2 and re.match(r'\d+', command.args[0]) and command.args[0] in (await plugin.read_data("quotes")).keys():
+    if len(command.args) > 2 and re.match(r"\d+", command.args[0]) and command.args[0] in (await plugin.read_data("quotes")).keys():
 
         if not await plugin.backup_data():
             await plugin.respond_notice(command, f"Error creating backup file, quote not replaced.")
@@ -512,7 +586,11 @@ async def quote_replace_command(command):
 
         old_quote_text: str = await (await plugin.read_data("quotes"))[command.args[0]].display_text(command)
         quote: Quote = await quote_add_or_replace(command, command.args[0])
-        await plugin.respond_notice(command, f"{await quote.display_text(command)}", expanded_message=f"**Old:**  \n{old_quote_text}  \n\n")
+        await plugin.respond_notice(
+            command,
+            f"{await quote.display_text(command)}",
+            expanded_message=f"**Old:**  \n{old_quote_text}  \n\n",
+        )
     else:
         await plugin.respond_notice(command, "Usage: `quote_replace <quote_id> <quote_text>`")
 
@@ -533,7 +611,7 @@ async def quote_add_or_replace(command, quote_id: str = "0") -> Quote or None:
     new_quote: Quote
 
     # try to guess formatting
-    if command.command.find('\n') == -1:
+    if command.command.find("\n") == -1:
         # assume irc-formatting if there are no line breaks
         quote_text: str
         if quote_id != "0":
@@ -547,22 +625,22 @@ async def quote_add_or_replace(command, quote_id: str = "0") -> Quote or None:
     else:
         # assume matrix c&p where nickname and actual message are on two separate lines
         # strip command name
-        lines: List[str] = command.command.split(' ', 1)[1].split('\n')
+        lines: List[str] = command.command.split(" ", 1)[1].split("\n")
         if quote_id != "0":
             # strip quote from nickname
             lines[0] = lines[0].strip(f"{str(quote_id)} ")
         index: int = 0
         quote_lines: List[QuoteLine] = []
-        while index < len(lines)-1:
+        while index < len(lines) - 1:
             if re.match(r"^\[.*]$", lines[index]):
                 # this is an annotation
                 quote_lines.append((QuoteLine(lines[index][1:-1], message_type="annotation")))
                 index += 1
             else:
-                quote_lines.append(QuoteLine(lines[index+1], nick=lines[index]))
+                quote_lines.append(QuoteLine(lines[index + 1], nick=lines[index]))
                 quote_text += f"<{lines[index]}> {lines[index+1]} | "
                 index += 2
-        quote_text = quote_text.rstrip(' | ')
+        quote_text = quote_text.rstrip(" | ")
         new_quote = Quote("local", text=quote_text, mxroom=command.room.room_id, lines=quote_lines)
         await new_quote.set_id()
 
@@ -660,7 +738,10 @@ async def quote_fuzzy_matching(command):
     else:
         await plugin.store_data("nick_links_fuzzy", False)
 
-    await plugin.respond_notice(command, f"Fuzzy matching for nick linking: {await plugin.read_data('nick_links_fuzzy')}")
+    await plugin.respond_notice(
+        command,
+        f"Fuzzy matching for nick linking: {await plugin.read_data('nick_links_fuzzy')}",
+    )
 
 
 async def quote_stats_command(command):
@@ -711,13 +792,15 @@ async def quote_stats_command(command):
             if quote.rank > quote_highest_rank[1]:
                 quote_highest_rank = (quote.id, quote.rank)
 
-    stats_message: str = f"**Total Quotes:** {quote_count}  \n" \
-                         f"**Highest ID:** {quote_max}  \n" \
-                         f"**Shortest Quote:** {quote_shortest[0]} ({quote_shortest[1]} chars)  \n" \
-                         f"**Longest Quote:** {quote_longest[0]} ({quote_longest[1]} chars)  \n" \
-                         f"**Highest Legacy Rank:** {quote_highest_rank[0]} ({quote_highest_rank[1]})  \n" \
-                         f"**Most Reactions:** {quote_max_reactions[0]} ({quote_max_reactions[1]})  \n  \n" \
-                         f"**Most Participated** "
+    stats_message: str = (
+        f"**Total Quotes:** {quote_count}  \n"
+        f"**Highest ID:** {quote_max}  \n"
+        f"**Shortest Quote:** {quote_shortest[0]} ({quote_shortest[1]} chars)  \n"
+        f"**Longest Quote:** {quote_longest[0]} ({quote_longest[1]} chars)  \n"
+        f"**Highest Legacy Rank:** {quote_highest_rank[0]} ({quote_highest_rank[1]})  \n"
+        f"**Most Reactions:** {quote_max_reactions[0]} ({quote_max_reactions[1]})  \n  \n"
+        f"**Most Participated** "
+    )
 
     if not full_output:
         stats_message += f"(Top 5 of {len(quote_nicks)} in `quote_stats full`):  \n"
@@ -737,7 +820,7 @@ async def quote_stats_command(command):
 
     if full_output:
         # split stats to build expandable message
-        message: str = "".join(stats_details.splitlines(keepends=True)[0:4])
+        message: str = "".join(stats_details.splitlines(keepends=True)[0:5])
         expanded_message: str = "".join(stats_details.splitlines(keepends=True)[5:])
         await plugin.respond_notice(command, stats_message + message, expanded_message=expanded_message)
     else:
@@ -762,8 +845,8 @@ async def quote_add_reaction(client: AsyncClient, room_id: str, event: UnknownEv
     if not tracked_quotes:
         tracked_quotes = []
 
-    relates_to: str = event.source['content']['m.relates_to']['event_id']
-    reaction: str = event.source['content']['m.relates_to']['key']
+    relates_to: str = event.source["content"]["m.relates_to"]["event_id"]
+    reaction: str = event.source["content"]["m.relates_to"]["key"]
     quote_id: str = "-1"
 
     for tracked_quote in tracked_quotes:
@@ -802,9 +885,15 @@ async def upgrade_quotes(command):
     if upgrade_successful:
         await plugin.store_data("quotes", quotes)
         await plugin.store_data("store_version", current_version)
-        await plugin.respond_notice(command, f"Success: upgraded {upgraded_quotes} of {len(quotes)} Quotes to Version {current_version}")
+        await plugin.respond_notice(
+            command,
+            f"Success: upgraded {upgraded_quotes} of {len(quotes)} Quotes to Version {current_version}",
+        )
     else:
-        await plugin.respond_notice(command, f"Error: upgraded {upgraded_quotes} of {len(quotes)} Quotes to Version {current_version}")
+        await plugin.respond_notice(
+            command,
+            f"Error: upgraded {upgraded_quotes} of {len(quotes)} Quotes to Version {current_version}",
+        )
 
 
 async def quote_replace_nick_command(command):
@@ -816,7 +905,7 @@ async def quote_replace_nick_command(command):
     :return:
     """
 
-    if len(command.args) == 2:
+    if len(command.args) == 2 or (len(command.args) == 3 and command.args[0] == "-s"):
         quotes: Dict[str, Quote] = await plugin.read_data("quotes")
         if not quotes:
             await plugin.respond_notice(command, f"Error: no quotes stored")
@@ -830,14 +919,34 @@ async def quote_replace_nick_command(command):
             num_nicks: int = 0
             quote_ids: List[str] = []
 
+            if command.args[0] == "-s":
+                no_comment: bool = True
+                orig_nick: str = command.args[1]
+                new_nick: str = command.args[2]
+            else:
+                no_comment: bool = False
+                orig_nick: str = command.args[0]
+                new_nick: str = command.args[1]
+
             quote: Quote
             quote_line: QuoteLine
             for quote in quotes.values():
                 old_num_nicks: int = num_nicks
+                replaced_nicks: List[str] = []
                 for quote_line in quote.lines:
-                    if quote_line.nick == command.args[0]:
+                    if quote_line.nick == orig_nick:
                         num_nicks += 1
-                        quote_line.nick = command.args[1]
+                        if new_nick not in replaced_nicks:
+                            if not no_comment:
+                                quote.lines = [
+                                    QuoteLine(
+                                        f"{new_nick} as {repr(orig_nick)}",
+                                        nick=None,
+                                        message_type="annotation",
+                                    )
+                                ] + quote.lines
+                            replaced_nicks.append(new_nick)
+                        quote_line.nick = new_nick
 
                 # increase number of changed quotes if number of replaced nicks has changed
                 if num_nicks > old_num_nicks:
@@ -846,12 +955,17 @@ async def quote_replace_nick_command(command):
 
             if num_quotes > 0:
                 await plugin.store_data("quotes", quotes)
-            await plugin.respond_notice(command, f"**{num_nicks}** occurrences of **{command.args[0]}** replaced by **{command.args[1]}** in **{num_quotes}** "
-                                                 f"quotes.",
-                                        expanded_message=f"Affected quotes: {', '.join(quote_ids)}")
+            await plugin.respond_notice(
+                command,
+                f"**{num_nicks}** occurrences of **{repr(orig_nick)}** replaced by **{new_nick}** in **{num_quotes}** " f"quotes.",
+                expanded_message=f"Affected quotes: {', '.join(quote_ids)}",
+            )
 
     else:
-        await plugin.respond_notice(command, f"Usage: `quote_replace_nick <old_nick> <new_nick>`")
+        await plugin.respond_notice(
+            command,
+            f"Usage: `quote_replace_nick [-s] <old_nick> <new_nick>`  \n`-s` switch skips adding an annotation",
+        )
 
 
 setup()
