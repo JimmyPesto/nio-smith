@@ -31,7 +31,7 @@ services:
       dockerfile: docker/Dockerfile
       # Build arguments may be specified here
       # args:
-      #  PYTHON_VERSION: 3.8
+      #  PYTHON_VERSION: 3.9
     volumes:
       # external volume containing dbs with bot state
       # read/write state volume!
@@ -49,3 +49,9 @@ services:
     # Defaults to 127.0.0.1 and is set in docker/.env
     extra_hosts:
       - "localhost:${HOST_IP_ADDRESS}"
+    # restart on failure: https://stackoverflow.com/questions/56583099/restart-docker-container-on-inner-process-crash
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+        window: 360s
