@@ -52,6 +52,28 @@ RUN apk add --no-cache \
 COPY docker/build_and_install_libolm.sh /scripts/
 RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 
+# Install Pillow buld dependencies
+# https://pillow.readthedocs.io/en/latest/installation.html#building-on-linux
+# (Pillow) make sure Python’s development libraries installed in Alpine:
+RUN apk add  --no-cache \
+    python3-dev \
+    py3-setuptools
+# Pillow prerequisites are installed for Alpine with:
+RUN apk add --no-cache \
+    tiff-dev \
+    jpeg-dev \
+    openjpeg-dev \
+    zlib-dev \
+    freetype-dev \
+    lcms2-dev \
+    libwebp-dev \
+    tcl-dev \
+    tk-dev \
+    harfbuzz-dev \
+    fribidi-dev \
+    libimagequant-dev \
+    libxcb-dev \
+    libpng-dev
 
 # Install python runtime modules. We do this before copying the source code
 # such that these dependencies can be cached
@@ -86,6 +108,24 @@ ARG SOURCE_DIR
 # Install any native runtime dependencies
 RUN apk add --no-cache \
     libstdc++
+
+# Install Pillow dependencies (TODO copy from build container?)
+RUN apk add --no-cache \
+    tiff-dev \
+    jpeg-dev \
+    openjpeg-dev \
+    zlib-dev \
+    freetype-dev \
+    lcms2-dev \
+    libwebp-dev \
+    tcl-dev \
+    tk-dev \
+    harfbuzz-dev \
+    fribidi-dev \
+    libimagequant-dev \
+    libxcb-dev \
+    libpng-dev
+
 #RUN apt-get update
 #RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # libstdc++6
