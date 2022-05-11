@@ -16,7 +16,7 @@ persist across container restarts.
 
 ### Creating a config file
 
-Copy `sample.config.yaml` to a file named `config.yaml` inside of the `data` directory. Fill it out as you normally would, with a few minor
+Copy `sample.config.yaml` to a file named `config.yaml` inside of the `data/config/` directory. Fill it out as you normally would, with a few minor
 differences:
 
 * The path to the database should reside inside of the data directory.
