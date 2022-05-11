@@ -7,7 +7,6 @@ import sys
 import traceback
 from time import time
 from asyncio import sleep
-
 from nio import (
     AsyncClient,
     AsyncClientConfig,
@@ -25,6 +24,13 @@ from aiohttp.client_exceptions import ServerDisconnectedError, ClientConnectionE
 from core.pluginloader import PluginLoader
 
 logger = logging.getLogger(__name__)
+try:
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ModuleNotFoundError:
+    logger.info("not using uvloop, falling back to asyncio event loop")
+
 client: AsyncClient
 plugin_loader: PluginLoader
 timestamp: float = time()
@@ -160,4 +166,4 @@ async def main():
             await client.close()
 
 
-asyncio.get_event_loop().run_until_complete(main())
+asyncio.new_event_loop().run_until_complete(main())
