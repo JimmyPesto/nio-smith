@@ -31,70 +31,32 @@ store log files in the `/data` directory.
 
 ## Running
 
-First, create a volume for the data directory created in the above section. Make sure to use an absolute path to the directory used for the state volume:
+First, create all external volumes for managing the container state. Make sure to use an absolute path to the directory used for the volumes or run the following commands from the root of this project:
 
 ```
-docker volume create \
-  --opt type=none \
-  --opt o=bind \
-  --opt device="/path/to/data/dir" state_volume
 sudo docker volume create \
   --opt type=none \
   --opt o=bind \
-  --opt device="~/bot/nio-smith/data/state" nio-state
+  --opt device="${PWD}/data/state" nio-state
 sudo docker volume create \
   --opt type=none \
   --opt o=bind \
   --opt device="${PWD}/plugins/cashup/cashup.json" plugin-cashup-state
 ```
 
-TODO delete or implement docker hub stuff!
-#Start the bot with:
-#
-#```
-#docker-compose up nio-smith
-#```
-#
-#This will run the bot and log the output to the terminal. You can instead run
-#the container detached with the `-d` flag:
-#
-#```
-#docker-compose up -d nio-smith
-#```
-#
-#(Logs can later be accessed with the `docker logs` command).
-#
-#This will use the `latest` tag from
-#[Docker Hub](https://hub.docker.com/somebody/nio-smith).
-
-To run from the checked out code, you can use:
-
+Test the bot with the following command to see the console outputs:
 ```
-docker-compose up local-checkout
+sudo docker-compose up nio-smith
+```
+Run the bot as background deamon with:
+```
+sudo docker-compose up -d nio-smith
 ```
 
-This will build an optimized, production-ready container. If you are developing
-instead and would like a development container for testing local changes, use
-the `docker/start-dev.sh` script.
-
-**Note:** If you are trying to connect to a Synapse instance running on the
-host, you need to allow the IP address of the docker container to connect. This
-is controlled by `bind_addresses` in the `listeners` section of Synapse's
-config. If present, either add the docker internal IP address to the list, or
-remove the option altogether to allow all addresses.
-
-TODO delete or implement docker hub stuff!
-##Updating
-#
-#To update the container, navigate to the bot's `docker` directory and run:
-#
-#```
-#docker-compose pull nio-smith
-#```
-#
-#Then restart the bot.
 
 ## Systemd
+
+**TODO**
 
 A systemd service file is provided for your convenience at
 [nio-smith.service](nio-smith.service). The service uses
@@ -117,13 +79,4 @@ To run the bot on system startup:
 
 ```
 systemctl enable nio-smith
-```
-
-## Building the image
-
-To manually build a production image from source, use the following `docker build` command
-from the repo's root:
-
-```
-docker build -t $USER/nio-smith:latest -f docker/Dockerfile .
 ```
