@@ -278,12 +278,6 @@ async def register(command):
         for arg in command.args:
             # remove all ; from arg element;
             arg = arg.replace(";", "")
-            # (just in case) remove all , from arg element;
-            arg = arg.replace(",", "")
-            # skip empty fields
-            # ("Name 0.1 ," -> "["Name", "0.1", ","] -> arg[2] "," -> replace "")
-            if len(arg) == 0:
-                continue
             # find any numbers in string (eg: 12; 12,1; 12.1)
             match_arg_nr = re.search("\d*[.,]?\d+", arg)
             # returns a match object
