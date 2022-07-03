@@ -347,7 +347,7 @@ async def add_expense_for_user(command):
         # ignoring numbers part of optional expense comment
         # first element treated as expense value
         expense_idx = possible_expense_idxs[0]
-        expense_str = command.args[expense_idx]
+        expense_str = re.search("\d*[.,]?\d+", command.args[expense_idx]).group()
         if expense_idx == 0:
             # first command arg is <expense-value>[€/$/etc.]
             # user seems has not provided a <user-name>
