@@ -342,6 +342,7 @@ async def add_expense_for_user(command):
     expense_str: str = ""
 
     possible_expense_idxs = [i for i, item in enumerate(command.args) if re.search("\d*[.,]?\d+", item)]
+    logger.debug(f"possible_expense_idxs: {possible_expense_idxs}")
     if len(possible_expense_idxs) > 0:
         # at least one number was found
         # ignoring numbers part of optional expense comment
