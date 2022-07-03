@@ -295,8 +295,13 @@ async def register(command):
                     return
             else:
                 new_names.append(arg)
-        if len(new_names) == len(new_percentages) and len(new_names) > 1:
+        if len(new_names) > 1 and len(new_names) == len(new_percentages):
             # every name got a percentage value
+            all_percentages_sum = sum(new_percentages)
+            if all_percentages_sum != 1:
+                await plugin.respond_notice(command, "The sum of all percentage values shall be exactly 1! Registration of group failed...")
+                await plugin.respond_notice(command, response_input_error)
+                return
             new_group_not_even = GroupPayments(splits_evenly=False)
             for idx, name in enumerate(new_names):
                 # create a new group member with split percentage
