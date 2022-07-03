@@ -278,6 +278,8 @@ async def register(command):
         for arg in command.args:
             # remove all ; from arg element;
             arg = arg.replace(";", "")
+            # (just in case) remove all , from arg element;
+            arg = arg.replace(",", "")
             # find any numbers in string (eg: 12; 12,1; 12.1)
             match_arg_nr = re.search("\d*[.,]?\d+", arg)
             # returns a match object
@@ -342,7 +344,6 @@ async def add_expense_for_user(command):
     expense_str: str = ""
 
     possible_expense_idxs = [i for i, item in enumerate(command.args) if re.search("\d*[.,]?\d+", item)]
-    logger.debug(f"possible_expense_idxs: {possible_expense_idxs}")
     if len(possible_expense_idxs) > 0:
         # at least one number was found
         # ignoring numbers part of optional expense comment
