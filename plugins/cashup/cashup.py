@@ -229,7 +229,6 @@ class Cashup:
         sorted_values_paid = [part["has_to_pay"] for part in ordered_parts_to_pay]
         i = 0
         j = len(sorted_people) - 1
-        debt = 0
         output_texts = []
         while i < j:
             debt = min(-(sorted_values_paid[i]), sorted_values_paid[j])
