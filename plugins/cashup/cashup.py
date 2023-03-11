@@ -81,10 +81,10 @@ class GroupPayments:
         throws ValueError when percentage value is demanded but not given.
 
         Args:
-            new_uid (str): the new user name to be added
-            [new_percentage] (float): optional the percentage this person is going to pay"""
+            new_uid (str): the new username to be added
+            new_percentage (float): optional the percentage this person is going to pay"""
         new_member = {}
-        if self.splits_evenly == False:
+        if not self.splits_evenly:
             # group is defined as not spliting evenly
             if new_percentage is not None:
                 # and a percentage value is given
@@ -132,7 +132,7 @@ class GroupPayments:
             name = payment["uid"]
             expense = payment["expenses"]
             group_str += f"{name} spend {clean_print_currency(expense)}"
-            if self.splits_evenly == False:
+            if not self.splits_evenly:
                 percentage = payment["percentage"] * 100
                 group_str += f" and will pay {percentage}% of the over all cost  \n"
             else:
@@ -229,23 +229,23 @@ class Cashup:
                 settle expense among the group."""
         # some function
         ordered_parts_to_pay = sorted(self._parts_to_pay, key=lambda d: d["has_to_pay"])
-        sortedPeople = [part["uid"] for part in ordered_parts_to_pay]
-        sortedValuesPaid = [part["has_to_pay"] for part in ordered_parts_to_pay]
+        sorted_people = [part["uid"] for part in ordered_parts_to_pay]
+        sorted_values_paid = [part["has_to_pay"] for part in ordered_parts_to_pay]
         i = 0
-        j = len(sortedPeople) - 1
+        j = len(sorted_people) - 1
         debt = 0
         output_texts = []
         while i < j:
-            debt = min(-(sortedValuesPaid[i]), sortedValuesPaid[j])
-            sortedValuesPaid[i] += debt
-            sortedValuesPaid[j] -= debt
+            debt = min(-(sorted_values_paid[i]), sorted_values_paid[j])
+            sorted_values_paid[i] += debt
+            sorted_values_paid[j] -= debt
             # generate output string
             if debt != 0.0:
-                new_text = str(sortedPeople[i]) + " owes " + str(sortedPeople[j]) + " " + clean_print_currency(debt)
+                new_text = str(sorted_people[i]) + " owes " + str(sorted_people[j]) + " " + clean_print_currency(debt)
                 output_texts.append(new_text)
-            if sortedValuesPaid[i] == 0:
+            if sorted_values_paid[i] == 0:
                 i += 1
-            if sortedValuesPaid[j] == 0:
+            if sorted_values_paid[j] == 0:
                 j -= 1
         return output_texts
 
@@ -398,9 +398,9 @@ async def cash_up(command):
         response_error = "No cashup possible because there was no group registered for this room."
         await plugin.respond_notice(command, response_error)
         return
-    cash_up = Cashup(loaded_group)
+    cashup = Cashup(loaded_group)
     message: str = ""
-    who_owes_who_texts = cash_up.distribute_expenses()
+    who_owes_who_texts = cashup.distribute_expenses()
     # check if any payments should be done
     if len(who_owes_who_texts) > 0:
         message += f"**Result of group cashup**:  \n"
