@@ -1,6 +1,4 @@
 # importing nio-stuff
-from types import AsyncGeneratorType
-from typing import Match
 from core.plugin import Plugin
 import logging
 
@@ -12,6 +10,9 @@ import re
 
 logger = logging.getLogger(__name__)
 plugin = Plugin("cashup", "General", "A very simple cashup plugin to share expenses in a group")
+
+# find any numbers in string (eg: 12; 12,1; 12.1)
+RE_MATCH_EXPENSE_NR = r'\d*[.,]?\d+'
 
 
 def setup():
@@ -36,21 +37,25 @@ def setup():
     )
     plugin.add_command("cashup-ae", add_expense_for_user, "Short form for `cashup-add-expense`")
     plugin.add_command("cashup-p", print_room_state, "Short form for `cashup-print`")
-    """Defining a configuration values to be expected in the plugin's configuration file and reading the value
 
+    plugin.add_command("chasup-set-currency-sign", set_currency_sign,
+                       "Set a currency sign for a previously registered group in this room. "
+                       "By default currency_sign from cashup.yaml will be used")
+
+    """Defining a configuration values to be expected in the plugin's configuration file and reading the value
     Defines a currency_sign used for a nice output message
     """
     plugin.add_config("currency_sign", "€", is_required=True)
 
 
-def clean_print_currency(value: float, currency_sign: str = plugin.read_config("currency_sign")):
+def print_currency(value: float, currency_sign: str = plugin.read_config("currency_sign")):
     clean_currency: str = "{:.2f}".format(value)
     clean_currency += currency_sign
     return clean_currency
 
 
 class GroupPayments:
-    def __init__(self, splits_evenly: bool = False):
+    def __init__(self, splits_evenly: bool = False, currency_sign: str = plugin.read_config("currency_sign")):
         """Setup Group_payments instance
         Represents a group of people that want to share expenses.
 
@@ -68,6 +73,7 @@ class GroupPayments:
         """
         self.payments = []
         self.splits_evenly = splits_evenly
+        self.currency_sign = currency_sign
 
     def append_new_member(self, new_uid: str, new_percentage: float = None):
         """Adds a new member to this group
@@ -120,13 +126,16 @@ class GroupPayments:
         # throws IndexError when search_uid not found
         payment_to_increase[0]["expenses"] += new_expense
 
+    def set_currency_sign(self, new_sign: str):
+        self.currency_sign = new_sign
+
     def __str__(self):
         """Simple function to get a human-readable string of this groups state"""
         group_str: str = f"**Group**: splits_evenly: {self.splits_evenly},  \n"
         for payment in self.payments:
             name = payment["uid"]
             expense = payment["expenses"]
-            group_str += f"{name} spend {clean_print_currency(expense)}"
+            group_str += f"{name} spend {print_currency(expense, self.currency_sign)}"
             if not self.splits_evenly:
                 percentage = payment["percentage"] * 100
                 group_str += f" and will pay {percentage}% of the over all cost  \n"
@@ -174,8 +183,7 @@ class Cashup:
             group (Group_payments): Object representing a groups
             expenses and how they want to split these
         """
-        self._split_uneven = not group.splits_evenly
-        self._payments = group.payments
+        self.group = group
 
     def distribute_expenses(self):
         """distribute the given expenses within the group
@@ -190,19 +198,19 @@ class Cashup:
 
     def _calculate_sum_and_mean_group_expenses(self):
         """calculate the sum & mean of all expenses in the group"""
-        self._sum_group_expenses = functools.reduce(lambda acc, curr: acc + int(curr["expenses"]), self._payments, 0)
-        self._mean_group_expenses = self._sum_group_expenses / len(self._payments)
+        self._sum_group_expenses = functools.reduce(lambda acc, curr: acc+int(curr["expenses"]), self.group.payments, 0)
+        self._mean_group_expenses = self._sum_group_expenses / len(self.group.payments)
 
     def _calculate_parts_to_pay(self):
         """calculate the parts each person has to pay
         depending on _split_uneven or not"""
-        if self._split_uneven:
+        if self.group.splits_evenly:
             self._parts_to_pay = [
                 {
                     "uid": payment["uid"],
                     "has_to_pay": (payment["expenses"] - (self._sum_group_expenses * payment["percentage"])),
                 }
-                for payment in self._payments
+                for payment in self.group.payments
             ]
         else:
             self._parts_to_pay = [
@@ -210,7 +218,7 @@ class Cashup:
                     "uid": payment["uid"],
                     "has_to_pay": (payment["expenses"] - self._mean_group_expenses),
                 }
-                for payment in self._payments
+                for payment in self.group.payments
             ]
 
     def _who_owes_who(self):
@@ -235,7 +243,8 @@ class Cashup:
             sorted_values_paid[j] -= debt
             # generate output string
             if debt != 0.0:
-                new_text = str(sorted_people[i]) + " owes " + str(sorted_people[j]) + " " + clean_print_currency(debt)
+                new_text = str(sorted_people[i]) + " owes " + str(sorted_people[j]) + " " \
+                           + print_currency(debt, self.group.currency_sign)
                 output_texts.append(new_text)
             if sorted_values_paid[i] == 0:
                 i += 1
@@ -274,7 +283,7 @@ async def register(command):
             # remove all ; from arg element;
             arg = arg.replace(";", "")
             # find any numbers in string (eg: 12; 12,1; 12.1)
-            match_arg_nr = re.search("\d*[.,]?\d+", arg)
+            match_arg_nr = re.search(RE_MATCH_EXPENSE_NR, arg)
             # returns a match object
             if match_arg_nr:
                 # number (as string) found
@@ -343,18 +352,19 @@ async def print_room_state(command):
 async def add_expense_for_user(command):
     """Adds a new expense for the given username"""
     response_input_error = (
-        "You need to provide a previously registered user-name and expense value:  \n" "`cashup-add-expense <user-name> <expense-value>[€/$/etc.] [comment]` [optional]"
+        "You need to provide a previously registered user-name and expense value:  \n"
+        "`cashup-add-expense <user-name> <expense-value>[€/$/etc.] [comment]` [optional]"
     )
     user_name: str = ""
     expense_str: str = ""
 
-    possible_expense_idxs = [i for i, item in enumerate(command.args) if re.search("\d*[.,]?\d+", item)]
+    possible_expense_idxs = [i for i, item in enumerate(command.args) if re.search(RE_MATCH_EXPENSE_NR, item)]
     if len(possible_expense_idxs) > 0:
         # at least one number was found
         # ignoring numbers part of optional expense comment
         # first element treated as expense value
         expense_idx = possible_expense_idxs[0]
-        expense_str = re.search("\d*[.,]?\d+", command.args[expense_idx]).group()
+        expense_str = re.search(RE_MATCH_EXPENSE_NR, command.args[expense_idx]).group()
         if expense_idx == 0:
             # first command arg is <expense-value>[€/$/etc.]
             # user seems has not provided a <user-name>
@@ -379,7 +389,7 @@ async def add_expense_for_user(command):
         await pg.save_group(command.room.room_id, loaded_group)
         await plugin.respond_message(
             command,
-            f"Successfully added {clean_print_currency(expense_float)} expense for {user_name}!",
+            f"Successfully added {print_currency(expense_float, loaded_group.currency_sign)} expense for {user_name}!",
         )
     else:
         await plugin.respond_notice(command, response_input_error)
@@ -406,6 +416,23 @@ async def cash_up(command):
         await plugin.respond_notice(command, "No balancing of expenses needed.")
     loaded_group.reset_all_expenses()
     await pg.save_group(command.room.room_id, loaded_group)
+
+
+async def set_currency_sign(command):
+    """Overwrite the group currency_value from the default one selected in cashup.yaml"""
+    loaded_group: GroupPayments = await pg.load_group(command.room.room_id)
+    if loaded_group is not None:
+        if len(command.args) is 1:
+            new_currency_sign = command.args[0]
+            loaded_group.set_currency_sign(new_currency_sign)
+            await pg.save_group(command.room.room_id, loaded_group)
+            response = f"Successfully updated the groups currency sign to: '{new_currency_sign}'"
+            await plugin.respond_message(command, response)
+        else:
+            response = "Bad argument, please try again. Example: 'cashup-currency-sign $'"
+            await plugin.respond_message(command, response)
+    else:
+        await plugin.respond_message(command, "No group registered, can not update the currency sign!")
 
 
 setup()
