@@ -422,7 +422,7 @@ async def set_currency_sign(command):
     """Overwrite the group currency_value from the default one selected in cashup.yaml"""
     loaded_group: GroupPayments = await pg.load_group(command.room.room_id)
     if loaded_group is not None:
-        if len(command.args) is 1:
+        if len(command.args) == 1:
             new_currency_sign = command.args[0]
             loaded_group.set_currency_sign(new_currency_sign)
             await pg.save_group(command.room.room_id, loaded_group)
