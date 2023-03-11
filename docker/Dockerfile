@@ -50,6 +50,7 @@ RUN apk add --no-cache \
 # We will later copy contents from both of these folders to the runtime
 # container
 COPY docker/build_and_install_libolm.sh /scripts/
+RUN chown -R /scripts/
 RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 
 # Install Pillow build dependencies
