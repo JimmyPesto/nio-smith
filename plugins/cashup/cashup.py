@@ -5,8 +5,7 @@ from core.plugin import Plugin
 import logging
 
 # importing cash up stuff
-# functools for reduce()
-import functools
+import functools  # for reduce()
 
 # importing regular expressions for parsing numbers
 import re
@@ -38,7 +37,6 @@ def setup():
     )
     plugin.add_command("cashup-ae", add_expense_for_user, "Short form for `cashup-add-expense`")
     plugin.add_command("cashup-p", print_room_state, "Short form for `cashup-print`")
-    # TODO shorter - smartphone friendly naming
     """Defining a configuration values to be expected in the plugin's configuration file and reading the value
 
     Defines a currency_sign used for a nice output message
@@ -63,14 +61,12 @@ class GroupPayments:
         each dict contains:
             * uid - user name
             * expenses - the sum of all expenses spend
-            * [percentage] - optionally the percentage of the over
-            over all cost this person is going to pay
+            * [percentage] - optionally the percentage of the over all cost this person is going to pay
 
         Args:
             splits_evenly (bool)
-                defines if the group splits all expenses
-                envenly or every member pays a certain
-                percantage of the over all cost
+                defines if the group splits all expenses evenly or every member pays a certain
+                percentage of the over all cost
         """
         self.payments = []
         self.splits_evenly = splits_evenly
@@ -85,7 +81,7 @@ class GroupPayments:
             new_percentage (float): optional the percentage this person is going to pay"""
         new_member = {}
         if not self.splits_evenly:
-            # group is defined as not spliting evenly
+            # group is defined as not splitting evenly
             if new_percentage is not None:
                 # and a percentage value is given
                 new_member = {
@@ -107,7 +103,7 @@ class GroupPayments:
     def reset_all_expenses(self):
         """Sets all expenses to 0 for every group member.
 
-        Attention all previously captured expeneses are lost!!!"""
+        Attention all previously captured expenses are lost!!!"""
         for payment in self.payments:
             payment["expenses"] = 0
 
@@ -116,7 +112,7 @@ class GroupPayments:
         by the given new_expense
 
         Args:
-            search_uid (str): user name whos expenses will be increased
+            search_uid (str): username whose expenses will be increased
             new_expense (float): the new expense that will be added
         """
         # find all payments where uid matches
@@ -126,7 +122,7 @@ class GroupPayments:
         payment_to_increase[0]["expenses"] += new_expense
 
     def __str__(self):
-        """Simple function to get a human readable string of this groups state"""
+        """Simple function to get a human-readable string of this groups state"""
         group_str: str = f"**Group**: splits_evenly: {self.splits_evenly},  \n"
         for payment in self.payments:
             name = payment["uid"]
@@ -142,7 +138,7 @@ class GroupPayments:
 
 class PersistentGroups:
     """Setup Persistent_groups instance
-    Simple wrapper for persisting groups in some kind of data base
+    Simple wrapper for persisting groups in some kind of database
 
     Args:
         store
@@ -213,7 +209,7 @@ class Cashup:
             self._parts_to_pay = [
                 {
                     "uid": payment["uid"],
-                    "has_to_pay": (payment["expenses"] - (self._mean_group_expenses)),
+                    "has_to_pay": (payment["expenses"] - self._mean_group_expenses),
                 }
                 for payment in self._payments
             ]
@@ -265,7 +261,8 @@ async def register(command):
     if previously_persisted_group is not None:
         await plugin.respond_notice(
             command,
-            "There is already a group registered for this room. " "I will do a quick cashup so no data will be lost when registering the new group.",
+            """There is already a group registered for this room.
+            I will do a quick cashup so no data will be lost when registering the new group.""",
         )
         await cash_up(command)
     if command.args:
@@ -293,7 +290,7 @@ async def register(command):
                     return
             else:
                 # (just in case) remove all "," from arg name element
-                # dont do this for number elements as it harms percentage value
+                # don't do this for number elements as it harms percentage value
                 arg = arg.replace(",", "")
                 # skip empty fields
                 # ("Name 0.1 ," -> "["Name", "0.1", ","] -> arg[2] "," -> replace "")
@@ -337,7 +334,6 @@ async def register(command):
 async def print_room_state(command):
     """Read the database for the group registered for the current room [debugging helper function]"""
     loaded_group: GroupPayments = await pg.load_group(command.room.room_id)
-    response = "No group registered for this room!"
     if loaded_group is not None:
         response = loaded_group.__str__()
         await plugin.respond_message(command, response)
