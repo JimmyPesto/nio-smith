@@ -91,7 +91,8 @@ class GroupPayments:
                 }
             else:
                 # percentage value is demanded but not given
-                error_msg = "cashup Group_payments append_new_member failed: members percentage is not defined for a group that does not split evenly"
+                error_msg = "cashup Group_payments append_new_member failed: " \
+                            "members percentage is not defined for a group that does not split evenly"
                 logger.error(error_msg)
                 raise ValueError(error_msg, new_member)
         else:
@@ -145,17 +146,17 @@ class PersistentGroups:
             The object used to interact with the database
     """
 
-    def __init__(self, store):
+    def __init__(self, store: Plugin):
         self.store = store
 
-    async def delete_group(self, search_room_id: str):
+    async def delete_group(self, search_room_id: str) -> bool:
         # delete group if exists
         return await self.store.clear_data(search_room_id)
 
-    async def load_group(self, search_room_id: str):
+    async def load_group(self, search_room_id: str) -> GroupPayments:
         return await self.store.read_data(search_room_id)
 
-    async def save_group(self, room_id: str, group_to_save: GroupPayments):
+    async def save_group(self, room_id: str, group_to_save: GroupPayments) -> bool:
         return await self.store.store_data(room_id, group_to_save)
 
 
@@ -300,7 +301,8 @@ async def register(command):
             # every name got a percentage value
             all_percentages_sum = sum(new_percentages)
             if all_percentages_sum != 1:
-                await plugin.respond_notice(command, "The sum of all percentage values shall be exactly 1! Registration of group failed...")
+                await plugin.respond_notice(command, "The sum of all percentage values shall be exactly 1!"
+                                            "Registration of group failed...")
                 await plugin.respond_notice(command, response_input_error)
                 return
             new_group_not_even = GroupPayments(splits_evenly=False)
