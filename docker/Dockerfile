@@ -52,7 +52,7 @@ RUN apk add --no-cache \
 COPY docker/build_and_install_libolm.sh /scripts/
 RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 
-# Install Pillow buld dependencies
+# Install Pillow build dependencies
 # https://pillow.readthedocs.io/en/latest/installation.html#building-on-linux
 # (Pillow) make sure Python’s development libraries installed in Alpine:
 RUN apk add  --no-cache \
