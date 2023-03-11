@@ -10,7 +10,6 @@ import functools  # for reduce()
 # importing regular expressions for parsing numbers
 import re
 
-
 logger = logging.getLogger(__name__)
 plugin = Plugin("cashup", "General", "A very simple cashup plugin to share expenses in a group")
 
@@ -44,10 +43,9 @@ def setup():
     plugin.add_config("currency_sign", "€", is_required=True)
 
 
-def clean_print_currency(value):
+def clean_print_currency(value: float, currency_sign: str = plugin.read_config("currency_sign")):
     clean_currency: str = "{:.2f}".format(value)
-    config_currency_sign: str = plugin.read_config("currency_sign")
-    clean_currency += config_currency_sign
+    clean_currency += currency_sign
     return clean_currency
 
 
@@ -302,7 +300,7 @@ async def register(command):
             all_percentages_sum = sum(new_percentages)
             if all_percentages_sum != 1:
                 await plugin.respond_notice(command, "The sum of all percentage values shall be exactly 1!"
-                                            "Registration of group failed...")
+                                                     "Registration of group failed...")
                 await plugin.respond_notice(command, response_input_error)
                 return
             new_group_not_even = GroupPayments(splits_evenly=False)
