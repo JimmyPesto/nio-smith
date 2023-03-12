@@ -166,7 +166,7 @@ class PersistentGroups:
         return await self.store.clear_data(search_room_id)
 
     async def load_group(self, search_room_id: str) -> GroupPayments:
-        loaded_group: GroupPayments = self.store.read_data(search_room_id)
+        loaded_group: GroupPayments = await self.store.read_data(search_room_id)
         try:
             _ = loaded_group.currency_sign
         except AttributeError:
