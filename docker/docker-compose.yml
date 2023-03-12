@@ -4,7 +4,7 @@ volumes:
   # Set up with `docker volume create ...`. See docker/README.md for more info.
   nio-state:
     external: true
-  # dirty workarrount to make single plugin state persistant between builds
+  # dirty workaround to make single plugin state persistent between builds
   # Set up with `docker volume create ...`. See docker/README.md for more info.
   plugin-cashup-state:
     external: true

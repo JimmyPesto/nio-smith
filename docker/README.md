@@ -52,31 +52,3 @@ Run the bot as background deamon with:
 ```
 sudo docker-compose up -d nio-smith
 ```
-
-
-## Systemd
-
-**TODO**
-
-A systemd service file is provided for your convenience at
-[nio-smith.service](nio-smith.service). The service uses
-`docker-compose` to start and stop the bot.
-
-Copy the file to `/etc/systemd/system/nio-smith.service` and edit to
-match your setup. You can then start the bot with:
-
-```
-systemctl start nio-smith
-```
-
-and stop it with:
-
-```
-systemctl stop nio-smith
-```
-
-To run the bot on system startup:
-
-```
-systemctl enable nio-smith
-```
