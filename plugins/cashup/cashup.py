@@ -166,6 +166,11 @@ class PersistentGroups:
         return await self.store.clear_data(search_room_id)
 
     async def load_group(self, search_room_id: str) -> GroupPayments:
+        loaded_group: GroupPayments = self.store.read_data(search_room_id)
+        try:
+            _ = loaded_group.currency_sign
+        except AttributeError:
+            loaded_group.currency_sign = plugin.read_config("currency_sign")
         return await self.store.read_data(search_room_id)
 
     async def save_group(self, room_id: str, group_to_save: GroupPayments) -> bool:
