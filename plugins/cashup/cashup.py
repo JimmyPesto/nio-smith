@@ -55,7 +55,7 @@ def print_currency(value: float, currency_sign: str = plugin.read_config("curren
 
 
 class GroupPayments:
-    def __init__(self, splits_evenly: bool = False, currency_sign: str = plugin.read_config("currency_sign")):
+    def __init__(self, splits_evenly: bool = False, currency_sign: str = None):
         """Setup Group_payments instance
         Represents a group of people that want to share expenses.
 
@@ -73,7 +73,12 @@ class GroupPayments:
         """
         self.payments = []
         self.splits_evenly = splits_evenly
+        if currency_sign is None:
+            logger.error("currency sign is none")
+            currency_sign = plugin.read_config("currency_sign")
+            logger.error(f"currency sign loaded: {currency_sign}")
         self.currency_sign = currency_sign
+        logger.error(f"currency sign is set to {self.currency_sign}")
 
     def append_new_member(self, new_uid: str, new_percentage: float = None):
         """Adds a new member to this group
@@ -208,7 +213,7 @@ class Cashup:
             self._parts_to_pay = [
                 {
                     "uid": payment["uid"],
-                    "has_to_pay": (payment["expenses"] - (self._sum_group_expenses * payment["percentage"])),
+                    "has_to_pay": (payment["expenses"] - self._mean_group_expenses),
                 }
                 for payment in self.group.payments
             ]
@@ -216,7 +221,7 @@ class Cashup:
             self._parts_to_pay = [
                 {
                     "uid": payment["uid"],
-                    "has_to_pay": (payment["expenses"] - self._mean_group_expenses),
+                    "has_to_pay": (payment["expenses"] - (self._sum_group_expenses * payment["percentage"])),
                 }
                 for payment in self.group.payments
             ]
