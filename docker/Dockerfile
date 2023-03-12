@@ -56,8 +56,9 @@ RUN /scripts/build_and_install_libolm.sh ${LIBOLM_VERSION} /python-libs
 # https://pillow.readthedocs.io/en/latest/installation.html#building-on-linux
 # (Pillow) make sure Python’s development libraries installed in Alpine:
 RUN apk add  --no-cache \
-    python3-dev \
-    py3-setuptools
+    python3-dev
+#     \
+#    py3-setuptools
 # Pillow prerequisites are installed for Alpine with:
 RUN apk add --no-cache \
     tiff-dev \
