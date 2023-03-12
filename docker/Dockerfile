@@ -22,7 +22,7 @@
 # We use an initial docker container to build all of the runtime dependencies,
 # then transfer those dependencies to the container we're going to ship,
 # before throwing this one away
-ARG PYTHON_VERSION=3.9
+ARG PYTHON_VERSION=3.10
 ARG SOURCE_DIR=/home/nio-smith
 FROM docker.io/python:${PYTHON_VERSION}-alpine as builder
 
@@ -33,7 +33,7 @@ ARG SOURCE_DIR
 ##
 
 # Install libolm build dependencies
-ARG LIBOLM_VERSION=3.1.4
+ARG LIBOLM_VERSION=3.2.14
 RUN apk add --no-cache \
     make \
     cmake \
@@ -78,14 +78,11 @@ RUN apk add --no-cache \
 # Install python runtime modules. We do this before copying the source code
 # such that these dependencies can be cached
 # This speeds up subsequent image builds when the source code is changed
-#RUN mkdir -p /src/nio-smith/ # Not really needed anymore
 RUN mkdir -p ${SOURCE_DIR}
-#COPY nio-smith/__init__.py /src/nio-smith/ # TODO WHY? WHAT IS THIS PROJECTS EQUIVALENT?!
-#COPY README.md /src/ # TODO WHY?!
 
 # Build bot main dependencies
 COPY requirements.txt ${SOURCE_DIR}/requirements.txt
-RUN pip install --prefix="/python-libs" --no-warn-script-location -r "${SOURCE_DIR}/requirements.txt" --force-reinstall
+RUN pip install --prefix="/python-libs" --no-warn-script-location -r "${SOURCE_DIR}/requirements.txt"
 
 # Copy (selected) plugins?
 # Build all plugin requirements (specified in each plugin's `requirements.txt`)
