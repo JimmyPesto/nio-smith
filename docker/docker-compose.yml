@@ -1,13 +1,13 @@
-version: '3.1' # specify docker-compose version
+version: '3.4' # specify docker-compose version
 
 volumes:
-  # Set up with `docker volume create ...`. See docker/README.md for more info.
+  # bot general state (eg. sqlite db etc)
   nio-state:
-    external: true
-  # dirty workaround to make single plugin state persistent between builds
-  # Set up with `docker volume create ...`. See docker/README.md for more info.
-  plugin-cashup-state:
-    external: true
+    external: false
+  # plugin states (eg. json files)
+  nio-plugin-states:
+    external: false
+
 
 services:
   # Builds and runs an optimized container from local code
@@ -19,16 +19,15 @@ services:
       # args:
       #  PYTHON_VERSION: 3.9
     volumes:
-      # external volume containing dbs with bot state
+      # mount read only bot main and plugin config files as volume!
+      # not considering build context, so go one level up (../)
+      - "../data/config/:/home/nio-smith/data/config/:ro"
+
+      # named volume containing dbs with general bot state and plugin states
       # read/write state volume!
       - "nio-state:/home/nio-smith/data/state:rw"
-      # external volume containing plugin cashup state
-      # read/write state volume!
-      #- "plugin-cashup-state:/home/nio-smith/plugins/cashup/cashup.json:rw"
-      - "../plugins/cashup/:/home/nio-smith/plugins/cashup/:rw"
-      # read only config volume!
-      # not considering build context, so go one level up
-      - "../data/config:/home/nio-smith/data/config:ro"
+
+
     # Used for allowing connections to homeservers hosted on the host machine
     # (while docker host networking mode is still broken on Linux).
     #

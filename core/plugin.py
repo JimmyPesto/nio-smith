@@ -50,15 +50,12 @@ class Plugin:
         self.client: AsyncClient or None = None
         if path.isdir(f"plugins/{self.name}"):
             self.is_directory_based: bool = True
-            self.basepath: str = f"plugins/{self.name}/{self.name}"
         else:
-            self.is_directory_based: bool = False
-            self.basepath: str = f"plugins/{self.name}"
-
-        self.plugin_data_filename: str = f"{self.basepath}.pkl"
-        self.plugin_dataj_filename: str = f"{self.basepath}.json"
-        self.plugin_state_filename: str = f"{self.basepath}_state.json"
-        self.config_items_filename: str = f"{self.basepath}.yaml"
+            raise Exception("ATTETION: is_directory_based == False is no longer supported!")
+        self.plugin_data_filename: str = f"data/state/{self.name}.pkl"
+        self.plugin_dataj_filename: str = f"data/state/{self.name}.json"
+        self.plugin_state_filename: str = f"data/state/{self.name}_state.json"
+        self.config_items_filename: str = f"data/config/{self.name}.yaml"
 
         self.plugin_data: Dict[str, Any] = {}
         self.config_items: Dict[str, Any] = {}

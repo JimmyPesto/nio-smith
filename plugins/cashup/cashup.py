@@ -56,7 +56,7 @@ def print_currency(value: float, currency_sign: str = plugin.read_config("curren
 
 
 class GroupPayments:
-    def __init__(self, payments=List[dict], splits_evenly: bool = False, currency_sign: str = None):
+    def __init__(self, splits_evenly: bool = False, currency_sign: str = None):
         """Setup Group_payments instance
         Represents a group of people that want to share expenses.
 
@@ -72,11 +72,17 @@ class GroupPayments:
                 defines if the group splits all expenses evenly or every member pays a certain
                 percentage of the over all cost
         """
-        self.payments = payments
-        self.splits_evenly = splits_evenly
+        self.payments: List[dict] = []
+        self.splits_evenly: bool = splits_evenly
         if currency_sign is None:
             currency_sign = plugin.read_config("currency_sign")
-        self.currency_sign = currency_sign
+        self.currency_sign: str = currency_sign
+
+    @classmethod
+    def from_group_with_no_currency_sign(cls, old_group):
+        new_group_with_currency_sign = cls(old_group.splits_evenly)  # selects default currency sign
+        new_group_with_currency_sign.payments = old_group.payments
+        return new_group_with_currency_sign
 
     def append_new_member(self, new_uid: str, new_percentage: float = None):
         """Adds a new member to this group
@@ -166,13 +172,12 @@ class PersistentGroups:
     async def load_group(self, search_room_id: str) -> GroupPayments:
         loaded_group: GroupPayments = await self.store.read_data(search_room_id)
         # Workaround for backwards compatibility to old builds (old GroupPayments did not include currency_sign)
-        try:
-            _ = loaded_group.currency_sign
-        except AttributeError:
-            loaded_group = GroupPayments(payments=loaded_group.payments,
-                                         splits_evenly=loaded_group.splits_evenly,
-                                         currency_sign=plugin.read_config("currency_sign"))
-            loaded_group.currency_sign = plugin.read_config("currency_sign")
+        if loaded_group is not None:
+            try:
+                _ = loaded_group.currency_sign
+            except AttributeError:
+                loaded_group = GroupPayments.from_group_with_no_currency_sign(loaded_group)
+                loaded_group.currency_sign = plugin.read_config("currency_sign")
         return loaded_group
 
     async def save_group(self, room_id: str, group_to_save: GroupPayments) -> bool:
@@ -411,6 +416,9 @@ async def cash_up(command):
     """Settle all registered expenses among the previously registered group."""
     try:
         loaded_group: GroupPayments = await pg.load_group(command.room.room_id)
+        # make sure to respond in any way (None / AttributeError exception)
+        if loaded_group is None:
+            raise AttributeError
     except AttributeError:
         response_error = "No cashup possible because there was no group registered for this room."
         await plugin.respond_notice(command, response_error)

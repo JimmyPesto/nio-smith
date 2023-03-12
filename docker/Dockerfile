@@ -134,6 +134,8 @@ RUN adduser -D -h ${SOURCE_DIR} nio-smith
 WORKDIR ${SOURCE_DIR}
 RUN mkdir -p ${SOURCE_DIR}/data/state
 RUN chown nio-smith:nio-smith /home/nio-smith/data/state
+RUN mkdir -p ${SOURCE_DIR}/data/config
+RUN chown nio-smith:nio-smith /home/nio-smith/data/state
 RUN mkdir -p ${SOURCE_DIR}/plugins/
 COPY plugins/ ${SOURCE_DIR}/plugins/
 RUN chown -R nio-smith:nio-smith ${SOURCE_DIR}/plugins/
