@@ -75,11 +75,8 @@ class GroupPayments:
         self.payments = payments
         self.splits_evenly = splits_evenly
         if currency_sign is None:
-            logger.error("currency sign is none")
             currency_sign = plugin.read_config("currency_sign")
-            logger.error(f"currency sign loaded: {currency_sign}")
         self.currency_sign = currency_sign
-        logger.error(f"currency sign is set to {self.currency_sign}")
 
     def append_new_member(self, new_uid: str, new_percentage: float = None):
         """Adds a new member to this group
@@ -168,6 +165,7 @@ class PersistentGroups:
 
     async def load_group(self, search_room_id: str) -> GroupPayments:
         loaded_group: GroupPayments = await self.store.read_data(search_room_id)
+        # Workaround for backwards compatibility to old builds (old GroupPayments did not include currency_sign)
         try:
             _ = loaded_group.currency_sign
         except AttributeError:
