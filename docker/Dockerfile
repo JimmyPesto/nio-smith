@@ -85,7 +85,7 @@ RUN mkdir -p ${SOURCE_DIR}
 
 # Build bot main dependencies
 COPY requirements.txt ${SOURCE_DIR}/requirements.txt
-RUN pip install --prefix="/python-libs" --no-warn-script-location -r "${SOURCE_DIR}/requirements.txt"
+RUN pip install --prefix="/python-libs" --no-warn-script-location -r "${SOURCE_DIR}/requirements.txt" --force-reinstall
 
 # Copy (selected) plugins?
 # Build all plugin requirements (specified in each plugin's `requirements.txt`)

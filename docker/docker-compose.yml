@@ -10,20 +10,6 @@ volumes:
     external: true
 
 services:
-  # TODO delete or implement docker hub stuff!
-  # Runs from the latest release 
-  #nio-smith:
-  #  image: ${USER}/nio-smith
-  #  restart: always
-  #  volumes:
-  #    - data_volume:/data
-  #  # Used for allowing connections to homeservers hosted on the host machine
-  #  # (while docker host mode is still broken on Linux).
-  #  #
-  #  # Defaults to 127.0.0.1 and is set in docker/.env
-  #  extra_hosts:
-  #    - "localhost:${HOST_IP_ADDRESS}"
-
   # Builds and runs an optimized container from local code
   nio-smith:
     build:
