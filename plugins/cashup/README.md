@@ -34,6 +34,10 @@ Examples:
 Usage: `cashup-print` or `cashup-p`  
 Prints the current room state (for debuging).
 
+### !n cashup-currency-sign
+Usage: `!n cashup-currency-sign $`  
+Changes the default `currency_sign` defined in the configuration file for a previously registered group.
+
 ## Configuration
 Configuration options in `cashup.yaml`  
 - `currency_sign`: A string containing the currency sign of your local currency (eg:"€","$"). Default value: "€"
