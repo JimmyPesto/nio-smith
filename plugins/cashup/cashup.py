@@ -7,6 +7,7 @@ import functools  # for reduce()
 
 # importing regular expressions for parsing numbers
 import re
+from typing import List
 
 logger = logging.getLogger(__name__)
 plugin = Plugin("cashup", "General", "A very simple cashup plugin to share expenses in a group")
@@ -55,7 +56,7 @@ def print_currency(value: float, currency_sign: str = plugin.read_config("curren
 
 
 class GroupPayments:
-    def __init__(self, splits_evenly: bool = False, currency_sign: str = None):
+    def __init__(self, payments=List[dict], splits_evenly: bool = False, currency_sign: str = None):
         """Setup Group_payments instance
         Represents a group of people that want to share expenses.
 
@@ -71,7 +72,7 @@ class GroupPayments:
                 defines if the group splits all expenses evenly or every member pays a certain
                 percentage of the over all cost
         """
-        self.payments = []
+        self.payments = payments
         self.splits_evenly = splits_evenly
         if currency_sign is None:
             logger.error("currency sign is none")
@@ -170,6 +171,9 @@ class PersistentGroups:
         try:
             _ = loaded_group.currency_sign
         except AttributeError:
+            loaded_group = GroupPayments(payments=loaded_group.payments,
+                                         splits_evenly=loaded_group.splits_evenly,
+                                         currency_sign=plugin.read_config("currency_sign"))
             loaded_group.currency_sign = plugin.read_config("currency_sign")
         return await self.store.read_data(search_room_id)
 
