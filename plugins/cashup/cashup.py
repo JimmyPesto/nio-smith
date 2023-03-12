@@ -175,7 +175,7 @@ class PersistentGroups:
                                          splits_evenly=loaded_group.splits_evenly,
                                          currency_sign=plugin.read_config("currency_sign"))
             loaded_group.currency_sign = plugin.read_config("currency_sign")
-        return await self.store.read_data(search_room_id)
+        return loaded_group
 
     async def save_group(self, room_id: str, group_to_save: GroupPayments) -> bool:
         return await self.store.store_data(room_id, group_to_save)
