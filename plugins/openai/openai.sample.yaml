@@ -1,0 +1,10 @@
+# Sample configuration of openai-plugin. Rename to openai.yaml to use.
+
+# List of room-id the plugin is allowed to work in (if empty, all rooms are allowed)
+# allowed_rooms: []
+
+# minimum power level to activate translation (default: 50)
+# min_power_level: 50
+
+# Optional documentation url
+# doc_url: "https://github.com/alturiak/nio-smith/blob/master/plugins/openai/README.md"
