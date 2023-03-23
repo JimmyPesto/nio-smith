@@ -16,6 +16,7 @@ def setup():
     # Change settings in openai.yaml if required
     plugin.add_config("allowed_rooms", [], is_required=True)
     plugin.add_config("min_power_level", 50, is_required=True)
+    # plugin.add_config()
     plugin.add_command(
         "openai",
         switch,
@@ -111,29 +112,13 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
     # if allowed rooms is empty or room is in allowed rooms
     if plugin.read_config("allowed_rooms") == [] or room_id in plugin.read_config("allowed_rooms"):
         message = event.body
-        # Remove special characters before translation
-        # message = sub(r"[^A-z0-9\-\.\?!:\sÄäÜüÖö]+", "", event.body)
-
-        # Replace line breaks by spaces as freetrans doesn't seem to handle them
-        # message = message.replace("\n", " ")
-        # googletrans = GoogleTranslate()
-
-        # try:
-        #     logger.debug(f"Detecting language for message: {message}")
-        #     message_source_lang: str = await googletrans.detect(message)
-        #
-        # except Exception:
-        #     del rooms_db[room_id]
-        #     await plugin.store_data("rooms_db", rooms_db)
-        #     plugin.del_hook("m.room.message", send_message_to_openai_gpt, room_id_list=[room_id])
-        #     await plugin.send_notice(
-        #         client,
-        #         room_id,
-        #         "Error in backend translation module. Translations disabled.",
-        #     )
-        #     return
-        answer = f"echo from room[{room_id}]: '{message}'"
-        await plugin.send_notice(client, room_id, answer)
+        # check if bot username was mentioned as first word in incoming message?
+        split_message = message.split(" ")
+        # client.user_id = @<username>:<matrix-home-server-domain>
+        simple_client_id = client.user_id.replace("@", "").split(":")[0]
+        if simple_client_id in split_message[0]:
+            # bot was meantioned
+            await plugin.send_notice(client, room_id, "seems like you love me because you know my name")
 
 
 setup()
