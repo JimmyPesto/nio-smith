@@ -1,26 +1,32 @@
 # -*- coding: utf8 -*-
+# bot specific imports
 from core.plugin import Plugin
 from nio import AsyncClient, RoomMessageText
 from typing import Dict
+
+# Python External Modules
+import openai
+# Python Internal Modules
 import logging
+
 
 logger = logging.getLogger(__name__)
 plugin = Plugin(
-    "openai",
+    "aichat",
     "General",
-    "Provide answers to all room-messages from openai GPT bot",
+    "Provide answers to all room-messages from aichat GPT bot",
 )
 
 
 def setup():
-    # Change settings in openai.yaml if required
+    # Change settings in aichat.yaml if required
     plugin.add_config("allowed_rooms", [], is_required=True)
     plugin.add_config("min_power_level", 50, is_required=True)
-    # plugin.add_config()
+    plugin.add_config("openai_api_key", is_required=True)
     plugin.add_command(
-        "openai",
+        "aichat",
         switch,
-        "`openai` - activate/deactivate openai GPT bot for this room",
+        "`aichat` - activate/deactivate aichat GPT bot for this room",
         room_id=plugin.read_config("allowed_rooms"),
         power_level=plugin.read_config("min_power_level"),
     )
@@ -38,7 +44,7 @@ roomsdb = {
 
 async def switch(command):
     """
-    Enable or disable openai GPT
+    Enable or disable aichat GPT
     :param command:
     :return:
     """
@@ -48,7 +54,7 @@ async def switch(command):
     # get any existing room data
     if await plugin.read_data("rooms_db"):
         rooms_db = await plugin.read_data("rooms_db")
-    # was `openai` called with any other arguments?
+    # was `aichat` called with any other arguments?
     # if len(command.args) == 0:  # no additional argument
         # load default values from config
         # source_langs: List[str] = plugin.read_config("default_source")
@@ -70,12 +76,12 @@ async def switch(command):
         plugin.del_hook("m.room.message", send_message_to_openai_gpt, room_id_list=[command.room.room_id])
         del rooms_db[command.room.room_id]
         await plugin.store_data("rooms_db", rooms_db)
-        await plugin.respond_notice(command, "openai GPT disabled")
+        await plugin.respond_notice(command, "aichat GPT disabled")
     # else no existing hook (room was inactive before)
     # if no allowed_rooms list is given by configuration
     # OR this room is in allowed_rooms list
     elif not plugin.read_config("allowed_rooms") or command.room.room_id in plugin.read_config("allowed_rooms"):
-        # activate openai gpt for this room
+        # activate aichat gpt for this room
         # persist new state
         rooms_db[command.room.room_id] = {
             "room_id": command.room.room_id,
@@ -90,14 +96,14 @@ async def switch(command):
             hook_type="dynamic",
         )
 
-        message = "Connection to openai GPT enabled.  \n"
-        message += f"**ATTENTION**: *ALL* future messages in this room will be sent to openai GPT until disabled again."
+        message = "Connection to aichat GPT enabled.  \n"
+        message += f"**ATTENTION**: *ALL* future messages in this room will be sent to aichat GPT until disabled again."
         await plugin.respond_notice(command, message)
 
 
 async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: RoomMessageText):
     """
-    Send a received message to openai gpt if translation is active on room
+    Send a received message to aichat gpt if translation is active on room
     :param client:
     :param room_id:
     :param event:
@@ -116,9 +122,45 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         split_message = message.split(" ")
         # client.user_id = @<username>:<matrix-home-server-domain>
         simple_client_id = client.user_id.replace("@", "").split(":")[0]
-        if simple_client_id in split_message[0]:
-            # bot was meantioned
-            await plugin.send_notice(client, room_id, "seems like you love me because you know my name")
+        for word in split_message:
+            if simple_client_id in word:
+                bot_name_in_message = word
+                # bot was mentioned
+                openai.api_key = plugin.read_config("openai_api_key")
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": f"You are a funny assistant called {bot_name_in_message}."},
+                        {"role": "user", "content": message},
+                    ]
+                )
+                tokens_spend = response['usage']['total_tokens']
+                answer = response['choices'][0]['message']['content']
+                await plugin.send_notice(client, room_id, answer)
+                await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
+                return
 
+
+# example response:
+#   "choices": [
+#     {
+#       "finish_reason": "stop",
+#       "index": 0,
+#       "message": {
+#         "content": "The Los Angeles Dodgers won the World Series in 2020.",
+#         "role": "assistant"
+#       }
+#     }
+#   ],
+#   "created": 1679677002,
+#   "id": "chatcmpl-6xf0U5TQA95zEVrarI1EEKcHrNHHT",
+#   "model": "gpt-3.5-turbo-0301",
+#   "object": "chat.completion",
+#   "usage": {
+#     "completion_tokens": 13,
+#     "prompt_tokens": 29,
+#     "total_tokens": 42
+#   }
+# }
 
 setup()

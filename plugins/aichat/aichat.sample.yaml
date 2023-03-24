@@ -1,4 +1,4 @@
-# Sample configuration of openai-plugin. Rename to openai.yaml to use.
+# Sample configuration of aichat-plugin. Rename to aichat.yaml to use.
 
 # List of room-id the plugin is allowed to work in (if empty, all rooms are allowed)
 # allowed_rooms: []
