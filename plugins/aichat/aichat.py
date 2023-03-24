@@ -136,8 +136,8 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
                 )
                 tokens_spend = response['usage']['total_tokens']
                 answer = response['choices'][0]['message']['content']
-                await plugin.send_notice(client, room_id, answer)
-                await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
+                await plugin.send_notice(client, room_id, answer+f"[{tokens_spend}]")
+                # await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
                 return
 
 
