@@ -7,10 +7,14 @@ from typing import Dict
 # Python External Modules
 import openai
 # Python Internal Modules
+import re
 import logging
 
 
 logger = logging.getLogger(__name__)
+
+CLIENT_ID_PATTERN_TEMPLATE = "\\b{client_id}\\b"
+
 plugin = Plugin(
     "aichat",
     "General",
@@ -121,9 +125,12 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         # check if bot username was mentioned
         # client.user_id = @<username>:<matrix-home-server-domain>
         simple_client_id = client.user_id.replace("@", "").split(":")[0]
-        if simple_client_id in message:
-            bot_name_in_message = word
+        updated_pattern = CLIENT_ID_PATTERN_TEMPLATE.format(client_id=simple_client_id)
+        logger.info("incoming message: "+message)
+        bot_name_in_message = re.search(updated_pattern, message)  # Search for the pattern in the string
+        if bot_name_in_message:
             # bot was mentioned
+            logger.info(f"simple client id: {simple_client_id}, client id found: {bot_name_in_message.group()}")
             openai.api_key = plugin.read_config("openai_api_key")
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
@@ -135,7 +142,6 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
             tokens_spend = response['usage']['total_tokens']
             answer = response['choices'][0]['message']['content']
             await plugin.send_notice(client, room_id, answer+f"[{tokens_spend}]")
-            # await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
             return
 
 
