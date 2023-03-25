@@ -12,7 +12,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-CLIENT_ID_PATTERN_TEMPLATE = "\\b{client_id}\\b"
 
 plugin = Plugin(
     "aichat",
@@ -125,11 +124,11 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         # client.user_id = @<username>:<matrix-home-server-domain>
         response = await client.get_displayname()
         simple_client_id = response.displayname
-        logger.info(f"simple_client_id: {simple_client_id}")
-        logger.info("incoming message: "+message)
+        logger.debug(f"simple_client_id: {simple_client_id}")
+        logger.debug("incoming message: "+message)
         if simple_client_id in message:
             # bot was mentioned
-            logger.info(f"simple client id: {simple_client_id}, client id found: {simple_client_id}")
+            logger.debug(f"simple client id: {simple_client_id}, client id found: {simple_client_id}")
             openai.api_key = plugin.read_config("openai_api_key")
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
@@ -140,7 +139,7 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
             )
             tokens_spend = response['usage']['total_tokens']
             answer = response['choices'][0]['message']['content']
-            await plugin.send_notice(client, room_id, answer+f"[{tokens_spend}]")
+            await plugin.send_notice(client, room_id, answer+f" [{tokens_spend}]")
             return
 
 
