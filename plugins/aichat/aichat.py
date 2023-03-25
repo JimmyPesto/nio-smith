@@ -118,27 +118,25 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
     # if allowed rooms is empty or room is in allowed rooms
     if plugin.read_config("allowed_rooms") == [] or room_id in plugin.read_config("allowed_rooms"):
         message = event.body
-        # check if bot username was mentioned as first word in incoming message?
-        split_message = message.split(" ")
+        # check if bot username was mentioned
         # client.user_id = @<username>:<matrix-home-server-domain>
         simple_client_id = client.user_id.replace("@", "").split(":")[0]
-        for word in split_message:
-            if simple_client_id in word:
-                bot_name_in_message = word
-                # bot was mentioned
-                openai.api_key = plugin.read_config("openai_api_key")
-                response = await openai.ChatCompletion.acreate(
-                    model="gpt-3.5-turbo",
-                    messages=[
-                        {"role": "system", "content": f"You are a funny assistant called {bot_name_in_message}."},
-                        {"role": "user", "content": message},
-                    ]
-                )
-                tokens_spend = response['usage']['total_tokens']
-                answer = response['choices'][0]['message']['content']
-                await plugin.send_notice(client, room_id, answer+f"[{tokens_spend}]")
-                # await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
-                return
+        if simple_client_id in message:
+            bot_name_in_message = word
+            # bot was mentioned
+            openai.api_key = plugin.read_config("openai_api_key")
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": f"You are a funny assistant called {bot_name_in_message}."},
+                    {"role": "user", "content": message},
+                ]
+            )
+            tokens_spend = response['usage']['total_tokens']
+            answer = response['choices'][0]['message']['content']
+            await plugin.send_notice(client, room_id, answer+f"[{tokens_spend}]")
+            # await plugin.send_notice(client, room_id, f"tokens spend: {tokens_spend}")
+            return
 
 
 # example response:
