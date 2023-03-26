@@ -124,11 +124,13 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         # client.user_id = @<username>:<matrix-home-server-domain>
         response = await client.get_displayname()
         simple_client_id = response.displayname
-        logger.debug(f"simple_client_id: {simple_client_id}")
-        logger.debug("incoming message: "+message)
+        logger.debug(f"incoming message before cleanup: {message}")
+        if event.source['content'].get('m.relates_to', False):
+            # if message relates to prev message (answer)
+            # -> remove prev messages
+            message = remove_lines_with_answer_character(message)
         if simple_client_id in message:
             # bot was mentioned
-            logger.debug(f"simple client id: {simple_client_id}, client id found: {simple_client_id}")
             openai.api_key = plugin.read_config("openai_api_key")
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
@@ -164,5 +166,13 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
 #     "total_tokens": 42
 #   }
 # }
+
+def remove_lines_with_answer_character(string):
+    lines = string.split("\n")
+    new_lines = []
+    for line in lines:
+        if line and line[0] != ">":
+            new_lines.append(line)
+    return "\n".join(new_lines)
 
 setup()
