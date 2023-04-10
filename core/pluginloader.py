@@ -14,7 +14,7 @@ from typing import List, Dict
 import glob
 from os.path import basename, isfile, isdir
 import importlib
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 import logging
 import traceback
 

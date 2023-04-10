@@ -24,7 +24,7 @@ from nio import (
     MatrixRoom,
 )
 from core.timer import Timer
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 import copy
 import jsonpickle
 import markdown
