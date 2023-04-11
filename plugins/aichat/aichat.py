@@ -2,6 +2,7 @@
 # bot specific imports
 from core.plugin import Plugin
 from nio import AsyncClient, RoomMessageText
+from nio.responses import RoomGetEventResponse, RoomContextResponse
 from typing import Dict
 
 # Python External Modules
@@ -124,25 +125,69 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         # client.user_id = @<username>:<matrix-home-server-domain>
         response = await client.get_displayname()
         simple_client_id = response.displayname
-        logger.debug(f"incoming message before cleanup: {message}")
-        if event.source['content'].get('m.relates_to', False):
-            # if message relates to prev message (answer)
-            # -> remove prev messages
-            message = remove_lines_with_answer_character(message)
         if simple_client_id in message:
             # bot was mentioned
             openai.api_key = plugin.read_config("openai_api_key")
+            aichat = AiMessages(system_role_content=f"You are a funny assistant called {simple_client_id}.",
+                                assistant_client_id=simple_client_id)
+            aichat.append_user_message(message)
+            logger.info(f"incoming message before cleanup: {message}")
+            logger.error(f"relates_to: {event.source['content'].get('m.relates_to')}")
+            logger.error(f"message: {event.source['content'].get('m.room.message')}")
+            if event.source['content'].get('m.relates_to', False):
+                # current message relates to a previous message
+                relates_to: RoomContextResponse = await client.room_context(
+                    room_id=room_id, event_id=event.source['content']['m.relates_to']['m.in_reply_to']['event_id'],
+                    limit=1)
+                relates_to_sender_id = relates_to.event.sender
+                relates_to_message = relates_to.event.body
+                aichat.insert_related_message_as_context(source_client_id=relates_to_sender_id,
+                                                         content=relates_to_message)
             response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": f"You are a funny assistant called {simple_client_id}."},
-                    {"role": "user", "content": message},
-                ]
+                model="gpt-3.5-turbo",  # ToDo add config
+                max_tokens=600,  # ToDo add to config
+                messages=aichat.messages
             )
+            logger.warning(aichat.messages)
             tokens_spend = response['usage']['total_tokens']
             answer = response['choices'][0]['message']['content']
             await plugin.send_notice(client, room_id, answer+f" [{tokens_spend}]")
-            return
+            # await plugin.send_notice(client, room_id, "ok")
+        return
+
+
+def remove_lines_with_answer_character(string):
+    lines = string.split("\n")
+    new_lines = []
+    for line in lines:
+        if line and line[0] != ">":
+            new_lines.append(line)
+    return "\n".join(new_lines)
+
+
+def new_ai_message(role: str, content: str) -> dict:
+    return {"role": role, "content": remove_lines_with_answer_character(content)}
+
+
+class AiMessages:
+    def __init__(self, system_role_content: str, assistant_client_id: str):
+        self.assistant_client_id: str = assistant_client_id
+        self.messages = []
+        # first message should be system role
+        self.append_message(role="system", content=system_role_content)
+
+    def append_message(self, role: str, content: str):
+        self.messages.append(new_ai_message(role=role, content=content))
+
+    def insert_related_message_as_context(self, source_client_id: str, content: str):
+        if self.assistant_client_id in source_client_id:  # message from bot/assistant
+            role = "assistant"
+        else:  # message from any user
+            role = "user"
+        self.messages.insert(1, new_ai_message(role=role, content=content))
+
+    def append_user_message(self, content: str):
+        self.append_message(role="user", content=content)
 
 
 # example response:
@@ -166,13 +211,5 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
 #     "total_tokens": 42
 #   }
 # }
-
-def remove_lines_with_answer_character(string):
-    lines = string.split("\n")
-    new_lines = []
-    for line in lines:
-        if line and line[0] != ">":
-            new_lines.append(line)
-    return "\n".join(new_lines)
 
 setup()
