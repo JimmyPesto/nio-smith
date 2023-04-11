@@ -120,18 +120,20 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
 
     # if allowed rooms is empty or room is in allowed rooms
     if plugin.read_config("allowed_rooms") == [] or room_id in plugin.read_config("allowed_rooms"):
-        message = event.body
+        logger.info(f"incoming message before cleanup: {event.body}")
+        message = remove_lines_with_answer_character(event.body)
         # check if bot username was mentioned
         # client.user_id = @<username>:<matrix-home-server-domain>
         response = await client.get_displayname()
         simple_client_id = response.displayname
+        # message does not include relates_to quote parts "> text"
+        # -> client ID must always be included in latest message itself!
         if simple_client_id in message:
             # bot was mentioned
             openai.api_key = plugin.read_config("openai_api_key")
             aichat = AiMessages(system_role_content=f"You are a funny assistant called {simple_client_id}.",
                                 assistant_client_id=simple_client_id)
             aichat.append_user_message(message)
-            logger.info(f"incoming message before cleanup: {message}")
             logger.error(f"relates_to: {event.source['content'].get('m.relates_to')}")
             logger.error(f"message: {event.source['content'].get('m.room.message')}")
             if event.source['content'].get('m.relates_to', False):
