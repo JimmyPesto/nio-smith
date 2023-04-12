@@ -11,6 +11,7 @@ from nio import (
     AsyncClient,
     AsyncClientConfig,
     RoomMessageText,
+    RoomMessageAudio,
     InviteEvent,
     LocalProtocolError,
     LoginError,
@@ -105,6 +106,14 @@ async def main():
     client.add_event_callback(callbacks.invite, (InviteEvent,))
     client.add_event_callback(callbacks.event_unknown, (UnknownEvent,))
     client.add_response_callback(run_plugins)
+
+    def audio_message_callback(*args, **kwargs):
+        for i in range(10):
+            print("******************")
+        print(args)
+        print(kwargs)
+    # client.add_event_callback(audio_message_callback, (RoomMessageAudio,))
+    client.add_event_callback(audio_message_callback, None)
 
     # Keep trying to reconnect on failure (with some time in-between)
     error_retries: int = 0

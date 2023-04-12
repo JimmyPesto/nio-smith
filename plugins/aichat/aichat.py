@@ -98,7 +98,12 @@ async def switch(command):
             room_id_list=[command.room.room_id],
             hook_type="dynamic",
         )
-
+        plugin.add_hook(
+            "m.audio",
+            send_voice_message_to_openai_gpt,
+            room_id_list=[command.room.room_id],
+            hook_type="dynamic",
+        )
         message = "Connection to aichat GPT enabled.  \n"
         message += f"**ATTENTION**: *ALL* future messages in this room will be sent to aichat GPT until disabled again."
         await plugin.respond_notice(command, message)
@@ -112,7 +117,7 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
     :param event:
     :return:
     """
-
+    logger.error(event)
     rooms_db: Dict[str, Dict[str, any]] = {}
 
     if await plugin.read_data("rooms_db"):
@@ -191,6 +196,10 @@ class AiMessages:
     def append_user_message(self, content: str):
         self.append_message(role="user", content=content)
 
+
+def send_voice_message_to_openai_gpt(client: AsyncClient, room_id: str, event):
+    logger.warning(f"audio event:\n{event}")
+    pass
 
 # example response:
 #   "choices": [
