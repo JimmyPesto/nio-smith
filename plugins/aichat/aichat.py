@@ -8,6 +8,7 @@ from typing import Dict
 # Python External Modules
 import openai
 # Python Internal Modules
+import re
 import logging
 
 
@@ -98,12 +99,6 @@ async def switch(command):
             room_id_list=[command.room.room_id],
             hook_type="dynamic",
         )
-        plugin.add_hook(
-            "m.audio",
-            send_voice_message_to_openai_gpt,
-            room_id_list=[command.room.room_id],
-            hook_type="dynamic",
-        )
         message = "Connection to aichat GPT enabled.  \n"
         message += f"**ATTENTION**: *ALL* future messages in this room will be sent to aichat GPT until disabled again."
         await plugin.respond_notice(command, message)
@@ -158,8 +153,7 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
             logger.warning(aichat.messages)
             tokens_spend = response['usage']['total_tokens']
             answer = response['choices'][0]['message']['content']
-            await plugin.send_notice(client, room_id, answer+f" [{tokens_spend}]")
-            # await plugin.send_notice(client, room_id, "ok")
+            await plugin.send_message(client, room_id, indent_between_code_blocks(answer), markdown_convert=True)
         return
 
 
@@ -197,30 +191,20 @@ class AiMessages:
         self.append_message(role="user", content=content)
 
 
-def send_voice_message_to_openai_gpt(client: AsyncClient, room_id: str, event):
-    logger.warning(f"audio event:\n{event}")
-    pass
+# https://daringfireball.net/projects/markdown/syntax#precode
+# be careful, codeblocks work different arround here
+# all lines between "```" must be indented by one tab
+def indent_between_code_blocks(text):
+    regular_codeblock_sign = "```"
+    block_indices = [0] +[x.start() for x in re.finditer(regular_codeblock_sign, text)]
+    blocks = [text[block_indices[i]:block_indices[i+1]] for i in range(len(block_indices)-1)]
+    indented_blocks = []
+    for i, block in enumerate(blocks):
+        if i % 2 == 0:
+            indented_blocks.append(block)
+        else:
+            indented_blocks.append('\t' + block.replace('\n', '\n\t'))
+    return ''.join(indented_blocks).replace(regular_codeblock_sign, "")
 
-# example response:
-#   "choices": [
-#     {
-#       "finish_reason": "stop",
-#       "index": 0,
-#       "message": {
-#         "content": "The Los Angeles Dodgers won the World Series in 2020.",
-#         "role": "assistant"
-#       }
-#     }
-#   ],
-#   "created": 1679677002,
-#   "id": "chatcmpl-6xf0U5TQA95zEVrarI1EEKcHrNHHT",
-#   "model": "gpt-3.5-turbo-0301",
-#   "object": "chat.completion",
-#   "usage": {
-#     "completion_tokens": 13,
-#     "prompt_tokens": 29,
-#     "total_tokens": 42
-#   }
-# }
 
 setup()
