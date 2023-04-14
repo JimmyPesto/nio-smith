@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 ROOM_DB_TYPE = Dict[str, any]
 ROOMS_DB_TYPE = Dict[str, ROOM_DB_TYPE]
+DEFAULT_CHAT_MODEL = "gpt-3.5-turbo"
 
 plugin = Plugin(
     "aichat",
@@ -30,13 +31,13 @@ def setup():
     plugin.add_config("min_power_level", 50, is_required=True)
     plugin.add_config("openai_api_key", is_required=True)
     plugin.add_config("max_tokens", 1000, is_required=True)
-    plugin.add_config("default_model", "gpt-3.5-turbo", is_required=True)
+    plugin.add_config("default_model", DEFAULT_CHAT_MODEL, is_required=True)
     plugin.add_config("default_system_role_content", "You are a funny assistant called {bot_user_id}.",
                       is_required=True)
     plugin.add_command(
         "aichat",
         switch,
-        "`aichat` - activate/deactivate aichat GPT bot for this room",
+        f"`aichat [{DEFAULT_CHAT_MODEL}]` - activate/deactivate aichat GPT bot for this room [optional]",
         room_id=plugin.read_config("allowed_rooms"),
         power_level=plugin.read_config("min_power_level"),
     )
@@ -216,21 +217,20 @@ class AiMessages:
 # https://daringfireball.net/projects/markdown/syntax#precode
 # be careful, codeblocks work different arround here
 # all lines between "```" must be indented by one tab
-def indent_between_code_blocks(text):
-    regular_codeblock_sign = "```"
-    block_indices = [0] + [x.start() for x in re.finditer(regular_codeblock_sign, text)]
-    blocks = [text[block_indices[i]:block_indices[i+1]] for i in range(len(block_indices)-1)]
-    if len(blocks) == 0:
-        # no code blocks found
-        return text
-    else:
-        indented_blocks = []
-        for i, block in enumerate(blocks):
-            if i % 2 == 0:
-                indented_blocks.append(block)
+def indent_between_code_blocks(input_str):
+    input_str = input_str.split('\n')
+    output_str = ""
+    is_code_block = False
+    for line in input_str:
+        if line.startswith('```'):
+            output_str += '\n'
+            is_code_block = not is_code_block
+        else:
+            if is_code_block:
+                output_str += '\t' + line + '\n'
             else:
-                indented_blocks.append('\t' + block.replace('\n', '\n\t'))
-        return ''.join(indented_blocks).replace(regular_codeblock_sign, "")
+                output_str += line + '\n'
+    return output_str.strip()
 
 
 setup()
