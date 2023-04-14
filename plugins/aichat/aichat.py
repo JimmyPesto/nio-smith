@@ -147,6 +147,8 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
         # -> client ID must always be included in latest message itself!
         if simple_client_id in message:
             # bot was mentioned
+            feedback_reaction = "✅"
+            await plugin.send_reaction(client, room_id, event.event_id, feedback_reaction)
             openai.api_key = plugin.read_config("openai_api_key")
             aichat = AiMessages(system_role_content=system_role_content,
                                 assistant_client_id=simple_client_id)
@@ -172,8 +174,8 @@ async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: R
             finish_reason: str = response['choices'][0]['finish_reason']
             tokens_spend = response['usage']['total_tokens']
             expanded_message = f"Response info: {model_name}, {finish_reason},  tokens spend [{tokens_spend}]"
-            await plugin.send_message(client, room_id, indent_between_code_blocks(answer), expanded_message,
-                                      markdown_convert=True)
+            await plugin.send_message(client, room_id, indent_between_code_blocks(answer),
+                                      expanded_message=expanded_message)
         return
 
 
