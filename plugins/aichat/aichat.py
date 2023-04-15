@@ -41,16 +41,75 @@ def setup():
         room_id=plugin.read_config("allowed_rooms"),
         power_level=plugin.read_config("min_power_level"),
     )
+    plugin.add_command(
+        "aichat-set-system-role",
+        update_system_role_content,
+        """`chatai-set-system-role You are a helpful assistant called {bot_user_id}` - Change the default system role message content
+        This string is formatted, the placeholder "{bot_user_id}" will automatically be replaced by bots username""",
+        room_id=plugin.read_config("allowed_rooms"),
+        power_level=plugin.read_config("min_power_level"),
+    )
+    plugin.add_command(
+        "aichat-print-system-role",
+        print_system_role_content,
+        "`chatai-print-system-role` - Return the currently configured content of the bots system role",
+        room_id=plugin.read_config("allowed_rooms"),
+        power_level=plugin.read_config("min_power_level"),
+    )
 
 
 """
 roomsdb = {
     room_id: {
         "room_id": command.room.room_id,
-        "is_active": True
+        "is_active": True,
+        model_name: "gpt-3.5-turbo"
+        "system_role_content": "You are a funny assistant called {bot_user_id}."
     }
 }
 """
+
+
+async def print_system_role_content(command):
+    # if existing hook (room was activated before)
+    if plugin.has_hook("m.room.message", send_message_to_openai_gpt, [command.room.room_id]):
+        # get any existing room data
+        rooms_db: ROOMS_DB_TYPE = await plugin.read_data("rooms_db")
+        if not rooms_db or rooms_db.get(command.room.room_id, None) is None:  # no data found for this room
+            await plugin.respond_message(command, "No configuration found for this room")
+        else:  # data for this room present in db
+            current_system_role_content = rooms_db[command.room.room_id]['system_role_content']
+            response = await command.client.get_displayname()
+            simple_client_id = response.displayname
+            await plugin.respond_message(command, "My system role message is: " +
+                                         f"'{current_system_role_content.format(bot_user_id=simple_client_id)}'")
+    else:
+        await plugin.respond_message(
+            command, "I can only print the system role message content when `aichat` was activated before!")
+
+
+async def update_system_role_content(command):
+    # if existing hook (room was activated before)
+    if plugin.has_hook("m.room.message", send_message_to_openai_gpt, [command.room.room_id]):
+        if len(command.args) > 0:
+            new_system_role_content = " ".join(arg for arg in command.args)
+        else:
+            await print_system_role_content(command)
+            new_system_role_content = plugin.read_config("default_system_role_content")
+        rooms_db: ROOMS_DB_TYPE = await plugin.read_data("rooms_db")
+        # get any existing room data
+        if rooms_db:
+            rooms_db: ROOMS_DB_TYPE = await plugin.read_data("rooms_db")
+        # persist updated content
+        rooms_db[command.room.room_id] = {
+            "system_role_content": new_system_role_content
+        }
+        await plugin.store_data("rooms_db", rooms_db)
+        feedback_reaction = "✅"
+        await plugin.send_reaction(command.client, command.room.room_id, command.event.event_id, feedback_reaction)
+    else:
+        await plugin.respond_message(
+            command, "I can only update the system role message content when `aichat` was activated before!")
 
 
 async def switch(command):
@@ -111,7 +170,7 @@ async def switch(command):
 
         response = await command.client.get_displayname()
         client_id = response.displayname
-        message = "Connection to aichat GPT enabled.  \n"
+        message = "aichat enabled  \n"
         message += f"**ATTENTION**: *ALL* future messages including my name {client_id} in this room"\
                    f" will be sent to openai {model_name} until disabled again, don't share any secrets."
         await plugin.respond_notice(command, message)
@@ -119,7 +178,7 @@ async def switch(command):
 
 async def send_message_to_openai_gpt(client: AsyncClient, room_id: str, event: RoomMessageText):
     """
-    Send a received message to aichat gpt if translation is active on room
+    Send a received message to aichat gpt if hook is active on room
     :param client:
     :param room_id:
     :param event:
