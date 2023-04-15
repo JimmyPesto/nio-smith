@@ -1,11 +1,10 @@
-Plugin: chatai
+Plugin: aichat
 ===
-Introducing the "OpenAI Chat Plugin"! With this plugin, you can easily interact with all of OpenAI's chat-based models, including the powerful GPT-3.5-Turbo model.(using 
-[openai-python](https://github.com/openai/openai-python)).
+Introducing the "OpenAI Chat Plugin"! With this plugin, you can easily interact with all of OpenAI's chat-based models, including the powerful GPT-3.5-Turbo model.
 
 ## Commands
 
-### chatai
+### aichat
 Usage: `aichat`  
 Toggle openai chat model interactions of all following messages mentioning the bots username within the room .  
 
