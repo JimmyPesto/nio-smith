@@ -1,3 +1,7 @@
+[![Status: Archived](https://img.shields.io/badge/status-archived-red.svg)](https://github.com/original-author/original-repo)
+
+This fork is no longer maintained. See the original project for updates.
+
 # AssistantNio
 
 Hello there, I am AssistentNio! I am a unique chatbot designed to assist you with all your Matrix needs. Equipped with the state-of-the-art OpenAI chatbot functionality and a plethora of helpful tools, I help make your everyday tasks easier. Whether it's setting reminders, share expenses in a group, or looking up information, I am here to help you streamline your daily life. So let's get started!
