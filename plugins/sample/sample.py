@@ -87,9 +87,13 @@ def setup():
         sample_link_users_per_server,
         "List all users in the room by their homeserver",
     )
-    plugin.add_command("sample_test_message_delay", sample_test_message_delay, "Sends multiple messages in order to test reaction to being ratelimited.")
+    plugin.add_command(
+        "sample_test_message_delay",
+        sample_test_message_delay,
+        "Sends multiple messages in order to test reaction to being ratelimited.")
 
-    """The following part demonstrates defining a configuration value to be expected in the plugin's configuration file and reading the value
+    """The following part demonstrates defining a configuration value to be expected in the plugin's 
+    configuration file and reading the value
 
     Define a configuration value to be loaded at startup.
     The value supplied is a default value that is used if no configuration was found in the configuration file 
@@ -102,7 +106,10 @@ def setup():
     )
 
     """Get the bot's client instance from plugin.get_client instead of the command"""
-    plugin.add_command("sample_get_client", sample_get_client, "Post a message using the client instance of `plugin.get_client()`")
+    plugin.add_command(
+        "sample_get_client",
+        sample_get_client,
+        "Post a message using the client instance of `plugin.get_client()`")
 
     """The following part demonstrates registering timers by fixed interval and timedelta"""
     if timers_enabled:

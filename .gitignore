@@ -32,6 +32,12 @@ plugins/*/*.json
 # Log files
 *.log
 
+# bot pics
+*.png
+*.xcf
+
 # other stuff
-plugins/sabnzbdapi/sabnzbdapi.py
-poetry.lock
+*-local*
+
+# test plugins
+plugins-*/

@@ -14,10 +14,10 @@ def build_sorted_text_output(headline: str, content: List[Tuple[str, str, int]])
     content.sort()
     output: str = f"{headline}  \n\n"
     for (item, description, power_level) in content:
+        min_power_level_text = ""
         if power_level != 0:
-            output = f"{output}`{item}`: {description} (PL: {power_level})  \n"
-        else:
-            output = f"{output}`{item}`: {description}  \n"
+            min_power_level_text = f"(PL: {power_level})"
+        output = f"{output}`{Plugin.command_prefix} {item}`: {description} {min_power_level_text}  \n"
 
     return output
 

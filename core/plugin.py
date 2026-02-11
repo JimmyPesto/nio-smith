@@ -24,16 +24,22 @@ from nio import (
     MatrixRoom,
 )
 from core.timer import Timer
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 import copy
 import jsonpickle
-import markdown
+import mistune  # markdown parser: https://github.com/lepture/mistune
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 
 
 class Plugin:
+    # persist configured directories across all plugins
+    # defaults needed for pytest and import issues
+    state_dir: str = "state"
+    config_dir: str = "config"
+    command_prefix: str = "!s"
+
     def __init__(self, name: str, category: str, description: str):
         """
         commands (list[tuple]): list of commands in the form of (trigger: str, method: str, helptext: str)
@@ -48,17 +54,15 @@ class Plugin:
         self.timers: List[Timer] = []
         self.rooms: List[str] = []
         self.client: AsyncClient or None = None
-        if path.isdir(f"plugins/{self.name}"):
-            self.is_directory_based: bool = True
-            self.basepath: str = f"plugins/{self.name}/{self.name}"
-        else:
-            self.is_directory_based: bool = False
-            self.basepath: str = f"plugins/{self.name}"
 
-        self.plugin_data_filename: str = f"{self.basepath}.pkl"
-        self.plugin_dataj_filename: str = f"{self.basepath}.json"
-        self.plugin_state_filename: str = f"{self.basepath}_state.json"
-        self.config_items_filename: str = f"{self.basepath}.yaml"
+        # assert self.state_dir, "Plugin.state_dir must be initialized once before plugins can be instantiated"
+        # assert self.config_dir, "Plugin.config_dir must be initialized once before plugins can be instantiated"
+        self.plugin_data_filename: str = os.path.join(self.state_dir, f"{self.name}.pkl")
+        self.plugin_dataj_filename: str = os.path.join(self.state_dir, f"{self.name}.json")
+        self.plugin_state_filename: str = os.path.join(self.state_dir, f"{self.name}_state.json")
+        self.config_items_filename: str = os.path.join(self.config_dir, f"{self.name}.yaml")
+
+        self.is_directory_based = False  # for backwards compatibility
 
         self.plugin_data: Dict[str, Any] = {}
         self.config_items: Dict[str, Any] = {}
@@ -580,8 +584,8 @@ class Plugin:
         :return: expandable message
         """
 
-        markdown_header: str = markdown.markdown(header)
-        markdown_body: str = markdown.markdown(body)
+        markdown_header: str = mistune.html(header)
+        markdown_body: str = mistune.html(body)
         return f"<details><summary>{markdown_header}</summary><br>{markdown_body}</details>"
 
     async def send_message(
@@ -704,7 +708,7 @@ class Plugin:
         :param message: the actual message
         :param expanded_message: an optional part of the message only visible after expanding the message (at least on Element Web)
         :param markdown_convert: optional flag if content should be converted to markdown, defaults to True
-        :return: the event_id of the sent message or None in case of an error
+        :return: the event_id of the message sent or None in case of an error
         """
 
         return await self.send_notice(
@@ -764,12 +768,13 @@ class Plugin:
 
         await send_reaction(client, room_id, event_id, reaction)
 
-    async def react(self, client, room_id: str, event_id: str, reaction: str):
-        """
-        ** DEPRECATED ** Alias for send_redaction
-        """
-        logger.warning(f"Deprecated function 'react' used - use 'send_reaction' instead")
-        await self.send_reaction(client, room_id, event_id, reaction)
+    async def respond_reaction(self, command, reaction: str):
+        return await self.send_reaction(
+            command.client,
+            command.room.room_id,
+            command.event.event_id,
+            reaction
+        )
 
     async def replace_message(
         self,

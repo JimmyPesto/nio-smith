@@ -1,0 +1,42 @@
+volumes:
+  # bot general bot and plugin states (eg. sqlite db etc)
+  AssistantNio-state:
+    external: true
+    # if true -> uses manually created/ prev. existing volume
+    # if false -> creates hidden volume managed by docker
+
+services:
+  # Builds and runs an optimized container from local code
+  assistantnio:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      # Build arguments may be specified here
+      # args:
+      #  PYTHON_VERSION: 3.9
+    volumes:
+      # mount read only bot main and plugin config files as volume!
+      # not considering build context, so go one level up (../)
+      - "../data/config/:/home/assistantnio/data/config/:ro"
+
+      # named volume containing general bot and plugin states
+      # read/write state volume!
+      - "AssistantNio-state:/home/assistantnio/data/state:rw"
+
+    # Used for allowing connections to homeservers hosted on the host machine
+    # (while docker host networking mode is still broken on Linux).
+    #
+    # Defaults to 127.0.0.1 and is set in docker/.env
+    # extra_hosts:
+    #   - "localhost:${HOST_IP_ADDRESS}"
+
+    # restart on failure:
+    # https://stackoverflow.com/questions/56583099/restart-docker-container-on-inner-process-crash
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 60s
+        window: 360s
+    # logging:
+    #  https://docs.docker.com/compose/compose-file/compose-file-v3/#logging
+    #  driver: "syslog"

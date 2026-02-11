@@ -3,21 +3,21 @@
 # Default values are shown
 
 # The string to prefix messages with to talk to the bot in group chats
-command_prefix: "!a"
+command_prefix: "!c"
 
-# Options for connecting to the bots Matrix account
+# Options for connecting to the bot's Matrix account
 matrix:
   # The Matrix User ID of the bot account
   user_id: "@bot:example.com"
   # Matrix account password
-  user_password: "XYZ"
+  user_password: ""
   # The URL of the homeserver to connect to
-  homeserver_url: https://example.com
-  # The device ID that is **non-pre-existing** device
+  homeserver_url: https://matrix.example.com
+  # The device ID that is **non pre-existing** device
   # If this device ID already exists, messages will be dropped silently in encrypted rooms
-  device_id: ABCDEFGHIJ
+  device_id: Device01
   # What to name the logged in device
-  device_name: assistant-nio-device
+  device_name: smiths-device
   # End-to-end encryption support
   #
   # Enabling this requires installing the matrix-nio encryption dependencies
@@ -28,32 +28,28 @@ matrix:
   botmasters: []
 
 storage:
-  # The following paths must match with docker volumes (defined in: docker-compose.yml)
-  # Path to the bots state directory
-  # containing bots DB, timers, encryption keys and tokens etc
-  state_dir: "./data/state/"
-  # directory containing the plugins to be dynamically loaded on startup
-  plugins_src_dir: "./plugins/"
-  # directory of the plugins configuration files
-  plugins_config_dir: "./data/config"
+  # The path to the database
+  database_filepath: "/home/assistantnio/data/state/bot.db"
+  # The path to a directory for internal bot storage
+  # containing encryption keys, sync tokens, etc.
+  store_filepath: "/home/assistantnio/data/state/store"
+  # The file to store execution times of timers for plugins
+  timers_filepath: "/home/assistantnio/data/state/timers.pkl"
 
 # Logging setup
 logging:
-  # Logging DEBUG
+  # Logging level
   # Allowed levels are 'INFO', 'WARNING', 'ERROR', 'DEBUG' where DEBUG is most verbose
-  level: 'DEBUG'
+  level: INFO
   # Configure logging to a file
   file_logging:
     # Whether logging to a file is enabled
-    # File logging is not recommended when using docker compose!
-    # use https://docs.docker.com/compose/compose-file/compose-file-v3/#logging
     enabled: false
     # The path to the file to log to. May be relative or absolute
-    filepath: "./data/logs/bot.log"
+    filepath: bot.log
   # Configure logging to the console output
   console_logging:
     # Whether logging to the console is enabled
-    # Recommended when using docker compose
     enabled: true
 
 # Optional plugin configurations
@@ -61,6 +57,6 @@ logging:
 plugins:
   # An optional list of plugins that should be loaded.
   # if empty, all plugins found will be loaded
-  # allow_list: []
+  allowlist: []
   # An optional list of plugins that must not be loaded
-  # deny_list: []
+  denylist: []

@@ -1,0 +1,28 @@
+# Sample configuration of aichat-plugin. Rename to aichat.yaml to use.
+
+# mandatory openai API key
+# openai_api_key: "required"
+
+# List of room-id the plugin is allowed to work in (if empty, all rooms are allowed)
+# allowed_rooms: []
+
+# minimum power level to activate aichat (default: 50)
+# min_power_level: 50
+
+# max number of tokens that could be spent per request
+# max_tokens: 1000
+
+# number of previous messages included in the openai request (0 = no history)
+# default_message_history_len: 0
+
+# Limitation! Only Chat API compliant models allowed: gpt-3.5-turbo and gpt-4
+#default_model: "gpt-3.5-turbo"
+
+# The system role also known as the system message provides initial instructions to the model
+# including a brief description of the assistant, his personality traits, rules or instructions to follow
+# or other relevant information
+# {bot_user_id} will be replaced by bots username
+# default_system_role_content: "You are a funny assistant called {bot_user_id}."
+
+# Optional documentation url
+# doc_url: "https://github.com/alturiak/nio-smith/blob/master/plugins/aichat/README.md"

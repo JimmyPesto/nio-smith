@@ -12,7 +12,7 @@ import uuid
 import blurhash
 
 from nio import SendRetryError, RoomSendResponse, Event, RoomGetEventResponse, RoomGetEventError, UploadResponse, AsyncClient, RoomSendError
-from markdown import markdown
+import mistune  # markdown parser: https://github.com/lepture/mistune
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ async def send_text_to_room(client: AsyncClient, room_id: str, message, notice=T
     msgtype = "m.notice" if notice else "m.text"
 
     if markdown_convert:
-        formatted_message: str = markdown(message)
+        formatted_message: str = mistune.html(message)
     else:
         formatted_message: str = message
 

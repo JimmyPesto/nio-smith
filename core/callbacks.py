@@ -1,7 +1,7 @@
 from typing import List
 
 from core.bot_commands import Command
-from nio import JoinError, MatrixRoom, UnknownEvent, InviteEvent, RoomMessageText
+from nio import JoinError, MatrixRoom, UnknownEvent, InviteEvent, RoomMessageText, RoomMemberEvent
 
 import logging
 
@@ -69,6 +69,25 @@ class Callbacks(object):
             # no commands found, pass the message to the hooks
             await self.plugin_loader.run_hooks(self.client, "m.room.message", room, event)
 
+    async def event_room_member(self, room: MatrixRoom, event: RoomMemberEvent):
+        """Callback for when a message event is received
+
+        Args:
+            room (nio.rooms.MatrixRoom): The room the event came from
+
+            event (nio.events.room_events.RoomMessageText): The event defining the message
+
+        """
+        # Ignore messages from ourselves
+        if event.sender == self.client.user:
+            return
+
+        logger.debug(f"Bot received for room member event: {event}")
+
+        # pass the event to the hooks
+        await self.plugin_loader.run_hooks(self.client, "m.room.member", room, event)
+
+
     async def event_unknown(self, room: MatrixRoom, event: UnknownEvent):
         """
         Handles events that are not yet known to matrix-nio (might change or break on updates)
@@ -85,7 +104,7 @@ class Callbacks(object):
             await self.plugin_loader.run_hooks(self.client, event.type, room, event)
 
     async def invite(self, room: MatrixRoom, event: InviteEvent):
-        """Callback for when an invite is received. Join the room specified in the invite"""
+        """Callback for when an invitation is received. Join the room specified in the invite"""
         logger.info(f"Got invite to {room.room_id} from {event.sender}.")
 
         # Only join when inviter is botmaster, botmasters are empty or room is DM

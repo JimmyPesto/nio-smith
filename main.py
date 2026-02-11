@@ -11,6 +11,7 @@ from nio import (
     AsyncClient,
     AsyncClientConfig,
     RoomMessageText,
+    RoomMemberEvent,
     InviteEvent,
     LocalProtocolError,
     LoginError,
@@ -60,16 +61,16 @@ async def main():
             logger.fatal(f"Configuration file {config_path} doesn't exist, exiting.")
             exit(1)
     else:
-        config_path: str = "config.yaml"
+        config_path: str = "./data/config/config.yaml"
 
-    # Read user-configured plugin-directory
-    if len(sys.argv) > 2:
-        plugin_dir: str = sys.argv[2]
-        if not os.path.isdir(plugin_dir):
-            logger.fatal(f"Plugin directory {plugin_dir} doesn't exist, exiting.")
-            exit(1)
-    else:
-        plugin_dir: str = "plugins"
+    # # Read user-configured plugin-directory
+    # if len(sys.argv) > 2:
+    #     plugin_dir: str = sys.argv[2]
+    #     if not os.path.isdir(plugin_dir):
+    #         logger.fatal(f"Plugin directory {plugin_dir} doesn't exist, exiting.")
+    #         exit(1)
+    # else:
+    #     plugin_dir: str = "plugins"
 
     # Read config file
     config = Config(config_path)
@@ -95,7 +96,7 @@ async def main():
     )
 
     # instantiate the pluginLoader
-    plugin_loader = PluginLoader(config, client, plugins_dir=plugin_dir)
+    plugin_loader = PluginLoader(config, client)
     await plugin_loader.load_plugin_data()
     await plugin_loader.load_plugin_state()
 
@@ -104,13 +105,14 @@ async def main():
     client.add_event_callback(callbacks.message, (RoomMessageText,))
     client.add_event_callback(callbacks.invite, (InviteEvent,))
     client.add_event_callback(callbacks.event_unknown, (UnknownEvent,))
+    client.add_event_callback(callbacks.event_room_member, (RoomMemberEvent,))
     client.add_response_callback(run_plugins)
 
     # Keep trying to reconnect on failure (with some time in-between)
     error_retries: int = 0
     while True:
         try:
-            # Try to login with the configured username/password
+            # Try to log in with the configured username/password
             try:
                 login_response = await client.login(
                     password=config.user_password,

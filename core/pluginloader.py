@@ -12,9 +12,9 @@ from time import time
 import operator
 from typing import List, Dict
 import glob
-from os.path import basename, isfile, isdir
+from os.path import basename, isdir
 import importlib
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 import logging
 import traceback
 
@@ -22,25 +22,28 @@ logger = logging.getLogger(__name__)
 
 
 class PluginLoader:
-    def __init__(self, config: Config, client: AsyncClient, plugins_dir: str = "plugins"):
+    def __init__(self, config: Config, client: AsyncClient):
         """
         Handles importing and running plugins
         :param config (Config): Bot configuration parameters
         :param client (AsyncClient): the bot's client instance
-        :param plugins_dir: (str) Directory containing the plugins
         """
 
         self.config: Config = config
         # import all plugins
-        module_all = glob.glob(f"{plugins_dir}/*")
+        module_all = glob.glob(f"{self.config.plugins_src_dir}/*")
         module_all.sort()
         module_dirs: List[str] = [basename(d) for d in module_all if isdir(d) and not d.endswith("__pycache__")]
-        module_files: List[str] = [basename(f)[:-3] for f in module_all if isfile(f) and f.endswith(".py") and not f.endswith("__init__.py")]
 
         if self.config.plugins_allowlist:
             logger.info(f"Plugin allowlist: {self.config.plugins_allowlist}")
         if self.config.plugins_denylist:
             logger.info(f"Plugin denylist: {self.config.plugins_denylist}")
+
+        # before we start, lets make sure all Plugins access the correct state and config directory's:
+        Plugin.state_dir = self.config.state_dir
+        Plugin.config_dir = self.config.plugins_config_dir
+        Plugin.command_prefix = self.config.command_prefix
 
         for module in module_dirs:
             if self.is_allowed_plugin(module):
@@ -50,21 +53,8 @@ class PluginLoader:
                     logger.error(f"Error importing {module}. Please check requirements: {traceback.format_exc(limit=1)}")
                 except KeyError:
                     logger.error(f"Error importing {module} due to missing configuration items. Skipping.")
-                except Exception:
-                    logger.error(f"Error importing {module} due to the following error: {traceback.format_exc(limit=1)}.\nSkipping.")
-            else:
-                logger.info(f"Skipping plugin {module} as it hasn't been allowed by configuration.")
-        for module in module_files:
-            if self.is_allowed_plugin(module):
-                try:
-                    logger.warning(f"DEPRECATION WARNING: Single-file plugin {module} detected. This will not be loaded from 0.2.0 onwards.")
-                    globals()[module] = importlib.import_module(f"plugins.{module}")
-                except ModuleNotFoundError:
-                    logger.error(f"Error importing {module}. Please check requirements: {traceback.format_exc(limit=1)}")
-                except KeyError:
-                    logger.error(f"Error importing {module} due to missing configuration items. Skipping.")
-                except Exception:
-                    logger.error(f"Error importing {module} due to the following error: {traceback.format_exc(limit=1)}.\nSkipping.")
+                except Exception as e:
+                    logger.exception(f"Error importing {module} due to the following error: {e}.\nSkipping.")
             else:
                 logger.info(f"Skipping plugin {module} as it hasn't been allowed by configuration.")
 
